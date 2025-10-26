@@ -7,13 +7,17 @@ const avatarColors = [
   "bg-[#00CED1]",
 ];
 
-export function AvatarList({ names }: { names: string[] }) {
+export function AvatarList({ names = [] }: { names?: string[] }) {
   const getInitials = (name: string) =>
     name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase();
+
+  if (!names || names.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex -space-x-2">

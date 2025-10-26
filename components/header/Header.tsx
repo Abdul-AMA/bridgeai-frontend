@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, ChevronDown, ChevronUp, Search, Plus, Users, Settings } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, Search, Plus, Users, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { COLORS } from "@/constants";
 import { geistSans } from "@/fonts";
 import { usePathname, useRouter } from "next/navigation";
@@ -141,9 +148,35 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
 
       <div className="flex items-center gap-3">
         <HeaderButton icon={Bell} label="Notifications" badge="12" />
-        <Button className="rounded-full w-7 h-7 flex items-center justify-center p-0" style={{ backgroundColor: COLORS.primary, color: COLORS.textLight }}>
-          <span className="font-semibold text-sm">KJ</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              className="rounded-full w-7 h-7 flex items-center justify-center p-0" 
+              style={{ backgroundColor: COLORS.primary, color: COLORS.textLight }}
+            >
+              <span className="font-semibold text-sm">KJ</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem className="text-sm">
+              Profile Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="text-sm text-destructive focus:text-destructive flex items-center gap-2"
+              onClick={() => {
+                // Clear token from localStorage and cookie
+                localStorage.removeItem("token");
+                document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+                // Redirect to login page
+                router.push("/auth/login");
+              }}
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
