@@ -68,8 +68,9 @@ export default function LoginPage() {
         throw new Error(data.detail || "Login failed")
       }
 
-      // Store the token in localStorage or other state management solution
+      // Store the token in both localStorage and cookie
       localStorage.setItem("token", data.access_token)
+      document.cookie = `token=${data.access_token}; path=/; secure; samesite=strict`
       
       // Redirect to main page
       router.push("/teams")

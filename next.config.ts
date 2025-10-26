@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+
+  reactStrictMode: true,
+  // Disable Fast Refresh temporarily
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      config.optimization.runtimeChunk = false;
+    }
+    return config;
+  }
+
 };
 
 export default nextConfig;
