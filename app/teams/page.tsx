@@ -1,13 +1,31 @@
-import { Button } from "@/components/ui/button";
-import { SearchBar } from "@/components/shared/SearchBar";
-import { CardGrid } from "@/components/shared/CardGrid";
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { SearchBar } from "@/components/shared/SearchBar"
+import { CardGrid } from "@/components/shared/CardGrid"
 
 export default function TeamsList() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      router.replace("/auth/login")
+    } else {
+      setLoading(false)
+    }
+  }, [router])
+
+  if (loading) return <p>Loading...</p>
+
   const teams = [
     { id: 1, name: "Team Alpha", lastUpdate: "Sep 10, 2025", members: ["Sarah", "Omar", "Lina", "Ali"], status: "Active" },
     { id: 2, name: "Team Beta", lastUpdate: "Sep 5, 2025", members: ["Omar", "Hana"], status: "Completed" },
     { id: 3, name: "Team Gamma", lastUpdate: "Sep 7, 2025", members: ["Ali", "Sara", "Lina"], status: "Pending" },
-  ];
+  ]
 
   return (
     <div className="max-w-6xl mx-auto mt-14 px-6">
@@ -26,7 +44,7 @@ export default function TeamsList() {
         <Button variant="primary">Add Team</Button>
       </div>
 
-      <CardGrid items={teams} isTeam />
+      <CardGrid items={teams} />
     </div>
-  );
+  )
 }
