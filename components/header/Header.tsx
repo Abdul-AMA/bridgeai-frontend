@@ -14,6 +14,7 @@ import { COLORS } from "@/constants";
 import { geistSans } from "@/fonts";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { getCookie } from "@/lib/utils";
 
 interface Team {
   id: string;
@@ -34,14 +35,6 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
   useEffect(() => {
     // Check for authentication token in cookies
     const checkAuth = () => {
-      // Check cookies for token
-      const getCookie = (name: string) => {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift();
-        return null;
-      };
-      
       const token = getCookie("token");
       setIsAuthenticated(!!token);
     };
