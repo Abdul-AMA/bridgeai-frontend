@@ -36,11 +36,23 @@ try {
     throw new Error(data.detail || "Login failed")
   }
 
-  // ✅ Save token in cookie for middleware
-  document.cookie = `token=${data.access_token}; path=/; max-age=86400; secure`
+  // ✅ Save token and role in cookies (without secure flag for localhost)
+  document.cookie = `token=${data.access_token}; path=/; max-age=86400`
+  document.cookie = `role=${data.role}; path=/; max-age=86400`
 
-  console.log("✅ Token stored in cookie")
-  router.push("/teams")
+  console.log("✅ Token stored in cookie, role:", data.role)
+  
+  // ✅ Dispatch auth state change event
+  window.dispatchEvent(new Event('auth-state-changed'));
+  
+  // ✅ Redirect based on role
+  if (data.role === "ba") {
+    router.push("/teams")  // BA goes to teams dashboard
+  } else if (data.role === "client") {
+    router.push("/projects")  // Client goes to projects
+  } else {
+    router.push("/teams")  // Default fallback
+  }
 
 } catch (error) {
   setErrors({

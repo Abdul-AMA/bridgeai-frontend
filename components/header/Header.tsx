@@ -32,9 +32,17 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check for authentication token
+    // Check for authentication token in cookies
     const checkAuth = () => {
-      const token = localStorage.getItem("token");
+      // Check cookies for token
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+      };
+      
+      const token = getCookie("token");
       setIsAuthenticated(!!token);
     };
 
@@ -187,11 +195,13 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
                 <DropdownMenuItem 
                   className="text-sm text-destructive focus:text-destructive flex items-center gap-2"
                   onClick={() => {
-                    // Clear token from localStorage and cookie
-                    localStorage.removeItem("token");
+                    // Clear token and role from cookies
                     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+                    document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
                     // Update authentication state
                     setIsAuthenticated(false);
+                    // Dispatch event for other components
+                    window.dispatchEvent(new Event('auth-state-changed'));
                     // Redirect to login page
                     router.push("/auth/login");
                   }}
