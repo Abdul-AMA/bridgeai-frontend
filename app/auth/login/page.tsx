@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { cn, getRoleBasedRedirectPath } from "@/lib/utils"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -36,11 +36,26 @@ try {
     throw new Error(data.detail || "Login failed")
   }
 
-  // ✅ Save token in cookie for middleware
-  document.cookie = `token=${data.access_token}; path=/; max-age=86400; secure`
+  // ✅ Validate response has required fields
+  if (!data.access_token) {
+    throw new Error("Invalid response: missing access token")
+  }
+  
+  if (!data.role) {
+    throw new Error("Invalid response: missing user role")
+  }
 
-  console.log("✅ Token stored in cookie")
-  router.push("/teams")
+  // ✅ Save token and role in cookies (without secure flag for localhost)
+  document.cookie = `token=${data.access_token}; path=/; max-age=86400`
+  document.cookie = `role=${data.role}; path=/; max-age=86400`
+
+  console.log("✅ Token stored in cookie, role:", data.role)
+  
+  // ✅ Dispatch auth state change event
+  window.dispatchEvent(new Event('auth-state-changed'));
+  
+  // ✅ Redirect based on role
+  router.push(getRoleBasedRedirectPath(data.role))
 
 } catch (error) {
   setErrors({

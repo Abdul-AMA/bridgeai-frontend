@@ -14,6 +14,7 @@ import { COLORS } from "@/constants";
 import { geistSans } from "@/fonts";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { getCookie } from "@/lib/utils";
 
 interface Team {
   id: string;
@@ -29,12 +30,12 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading state
 
   useEffect(() => {
-    // Check for authentication token
+    // Check for authentication token in cookies
     const checkAuth = () => {
-      const token = localStorage.getItem("token");
+      const token = getCookie("token");
       setIsAuthenticated(!!token);
     };
 
@@ -167,7 +168,10 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
       </div>
 
       <div className="flex items-center gap-3">
-        {isAuthenticated ? (
+        {isAuthenticated === null ? (
+          // Loading state - show nothing or a skeleton to prevent flash
+          <div className="w-20 h-8" /> // Empty space while loading
+        ) : isAuthenticated ? (
           <>
             <HeaderButton icon={Bell} label="Notifications" badge="12" />
             <DropdownMenu>
@@ -187,11 +191,13 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
                 <DropdownMenuItem 
                   className="text-sm text-destructive focus:text-destructive flex items-center gap-2"
                   onClick={() => {
-                    // Clear token from localStorage and cookie
-                    localStorage.removeItem("token");
+                    // Clear token and role from cookies
                     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+                    document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
                     // Update authentication state
                     setIsAuthenticated(false);
+                    // Dispatch event for other components
+                    window.dispatchEvent(new Event('auth-state-changed'));
                     // Redirect to login page
                     router.push("/auth/login");
                   }}
