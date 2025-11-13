@@ -1,13 +1,91 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { CardGrid } from "@/components/shared/CardGrid";
 
+interface Team {
+  id: number;
+  name: string;
+  lastUpdate: string;
+  members?: string[];
+  status: string;
+  description?: string;
+  created_by?: number;
+  created_at?: string;
+  member_count?: number;
+}
+
 export default function TeamsList() {
-  const teams = [
-    { id: 1, name: "Team Alpha", lastUpdate: "Sep 10, 2025", members: ["Sarah", "Omar", "Lina", "Ali"], status: "Active" },
-    { id: 2, name: "Team Beta", lastUpdate: "Sep 5, 2025", members: ["Omar", "Hana"], status: "Completed" },
-    { id: 3, name: "Team Gamma", lastUpdate: "Sep 7, 2025", members: ["Ali", "Sara", "Lina"], status: "Pending" },
-  ];
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get the token from cookies
+        const token = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("token="))
+          ?.split("=")[1];
+
+        if (!token) {
+          setError("No authentication token found. Please log in.");
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch("http://127.0.0.1:8000/api/teams/", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            setError("Unauthorized. Please log in again.");
+            localStorage.removeItem("access_token");
+          } else if (response.status === 404) {
+            setError("Teams endpoint not found.");
+          } else {
+            setError(`Failed to fetch teams: ${response.statusText}`);
+          }
+          setLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        
+        // Handle both array and single object responses
+        const teamsList = Array.isArray(data) ? data : [data];
+        
+        // Map the backend response to match the expected format
+        const formattedTeams = teamsList.map((team: Team) => ({
+          id: team.id,
+          name: team.name,
+          description: team.description,
+          status: team.status.charAt(0).toUpperCase() + team.status.slice(1),
+          lastUpdate: team.created_at ? new Date(team.created_at).toLocaleDateString() : "N/A",
+          members: new Array(team.member_count || 0).fill(null).map((_, i) => `Member ${i + 1}`),
+        }));
+
+        setTeams(formattedTeams);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred while fetching teams");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeams();
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto mt-14 px-6">
@@ -26,7 +104,9 @@ export default function TeamsList() {
         <Button variant="primary">Add Team</Button>
       </div>
 
-      <CardGrid items={teams} isTeam />
+      {loading && <p className="text-center text-muted-foreground">Loading teams...</p>}
+      {error && <p className="text-center text-red-500">{error}</p>}
+      {!loading && !error && <CardGrid items={teams} type="team" />}
     </div>
   );
 }

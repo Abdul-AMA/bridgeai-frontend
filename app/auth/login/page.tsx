@@ -68,8 +68,7 @@ export default function LoginPage() {
         throw new Error(data.detail || "Login failed")
       }
 
-      // Store the token in both localStorage and cookie
-      localStorage.setItem("token", data.access_token)
+      // Store the token in cookie
       document.cookie = `token=${data.access_token}; path=/; secure; samesite=strict`
       
       // Dispatch auth state change event
