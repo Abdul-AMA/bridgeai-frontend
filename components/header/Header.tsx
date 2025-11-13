@@ -169,29 +169,34 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
       <div className="flex items-center gap-3">
         {isAuthenticated ? (
           <>
-            <HeaderButton icon={Bell} label="Notifications" badge="12" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
-                  className="rounded-full w-7 h-7 flex items-center justify-center p-0" 
+                  className="rounded-full w-8 h-8 flex items-center justify-center p-0 cursor-pointer hover:opacity-80 transition-opacity" 
                   style={{ backgroundColor: COLORS.primary, color: COLORS.textLight }}
+                  onClick={() => router.push("/auth/me")}
                 >
                   <span className="font-semibold text-sm">KJ</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="text-sm">
+                <DropdownMenuItem 
+                  className="text-sm cursor-pointer"
+                  onClick={() => router.push("/auth/me")}
+                >
                   Profile Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  className="text-sm text-destructive focus:text-destructive flex items-center gap-2"
+                  className="text-sm text-destructive focus:text-destructive flex items-center gap-2 cursor-pointer"
                   onClick={() => {
                     // Clear token from localStorage and cookie
                     localStorage.removeItem("token");
                     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
                     // Update authentication state
                     setIsAuthenticated(false);
+                    // Dispatch auth state change event
+                    window.dispatchEvent(new Event('auth-state-changed'));
                     // Redirect to login page
                     router.push("/auth/login");
                   }}
