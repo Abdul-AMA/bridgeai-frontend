@@ -108,7 +108,7 @@ export default function TeamsList() {
 
       {loading && <p className="text-center text-muted-foreground">Loading teams...</p>}
       {error && <p className="text-center text-red-500">{error}</p>}
-      {!loading && !error && <CardGrid items={teams} type="team" />}
+      {!loading && !error && <CardGrid items={teams} type="team" onItemsChange={fetchTeams} />}
 
       <CreateTeamModal 
         open={isModalOpen} 
