@@ -1,14 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { Clock, File, MessageCircle, Plus, Users } from "lucide-react";
+import { apiCall } from "@/lib/api";
+
+interface Project {
+  id: number;
+  name: string;
+  description: string | null;
+  status: string;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProjectStats {
+  total: number;
+  pending: number;
+  approved: number;
+  active: number;
+  completed: number;
+  rejected: number;
+  archived: number;
+}
 
 export function DashboardGrid() {
+  const params = useParams();
+  const router = useRouter();
+  const teamId = params.id as string;
   const [isAddProjectOpen, setAddProjectOpen] = useState(false);
   const [isStartChatOpen, setStartChatOpen] = useState(false);
   const [isAddMemberOpen, setAddMemberOpen] = useState(false);
+  const [projectStats, setProjectStats] = useState<ProjectStats>({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    active: 0,
+    completed: 0,
+    rejected: 0,
+    archived: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Example projects list for dropdown
   const projects = [
@@ -17,15 +53,61 @@ export function DashboardGrid() {
     { id: 3, name: "Database Migration" },
   ];
 
+  const fetchProjectStats = async () => {
+    try {
+      setIsLoading(true);
+      const data = await apiCall<Project[]>(`/api/teams/${teamId}/projects`);
+      
+      // Calculate statistics
+      const stats: ProjectStats = {
+        total: data.length,
+        pending: data.filter(p => p.status === "pending").length,
+        approved: data.filter(p => p.status === "approved").length,
+        active: data.filter(p => p.status === "active").length,
+        completed: data.filter(p => p.status === "completed").length,
+        rejected: data.filter(p => p.status === "rejected").length,
+        archived: data.filter(p => p.status === "archived").length,
+      };
+      
+      setProjectStats(stats);
+    } catch (error) {
+      console.error("Error fetching project stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (teamId) {
+      fetchProjectStats();
+    }
+  }, [teamId]);
+
+  const handleProjectCreated = () => {
+    // Refresh dashboard data
+    fetchProjectStats();
+  };
+
+  const handleProjectsClick = () => {
+    router.push(`/teams/${teamId}/projects`);
+  };
+
   return (
     <div className="flex mb-14 flex-col gap-6 bg-gray-50 p-6 min-h-screen">
       {/* Row 1: Statistics */}
       <div className="grid grid-cols-3 gap-6">
         <StatCard
           title="Projects"
-          value={24}
-          statusCounts={{ Active: 12, Completed: 8, Pending: 4 }}
+          value={projectStats.total}
+          statusCounts={{ 
+            Pending: projectStats.pending,
+            Approved: projectStats.approved,
+            Active: projectStats.active,
+            Completed: projectStats.completed,
+          }}
           icon={<File />}
+          onClick={handleProjectsClick}
+          isLoading={isLoading}
         />
         <StatCard
           title="Chats"
@@ -110,25 +192,13 @@ export function DashboardGrid() {
       </div>
 
       {/* Modals */}
-      {isAddProjectOpen && (
-        <Modal onClose={() => setAddProjectOpen(false)} title="Add Project">
-          <input
-            type="text"
-            placeholder="Project Name"
-            className="w-full p-2 border rounded mb-2"
-          />
-          <textarea
-            placeholder="Description"
-            className="w-full p-2 border rounded mb-2"
-          />
-          <Button 
-            className="cursor-pointer"
-            onClick={() => setAddProjectOpen(false)}
-          >
-            Create
-          </Button>
-        </Modal>
-      )}
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        open={isAddProjectOpen}
+        onOpenChange={setAddProjectOpen}
+        teamId={teamId}
+        onProjectCreated={handleProjectCreated}
+      />
 
       {isStartChatOpen && (
         <Modal onClose={() => setStartChatOpen(false)} title="Start Chat">
@@ -202,6 +272,8 @@ interface StatCardProps {
   value: number;
   statusCounts?: { [key: string]: number };
   icon?: React.ReactNode;
+  onClick?: () => void;
+  isLoading?: boolean;
 }
 
 export function StatCard({
@@ -209,12 +281,16 @@ export function StatCard({
   value,
   statusCounts,
   icon,
+  onClick,
+  isLoading = false,
 }: StatCardProps) {
   const statusColors: { [key: string]: string } = {
     Active: "bg-green-200 text-black",
+    Approved: "bg-green-200 text-black",
     Completed: "bg-blue-200 text-black",
     Pending: "bg-yellow-200 text-black",
     Cancelled: "bg-red-200 text-black",
+    Rejected: "bg-red-200 text-black",
   };
 
   const cardBgColors: { [key: string]: string } = {
@@ -225,36 +301,47 @@ export function StatCard({
 
   return (
     <div
-      className={`relative p-5 rounded-2xl ${cardBgColors[title] || "bg-gray-200"}`}
+      className={`relative p-5 rounded-2xl ${cardBgColors[title] || "bg-gray-200"} ${
+        onClick ? "cursor-pointer hover:shadow-lg transition-shadow" : ""
+      }`}
+      onClick={onClick}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="text-2xl text-black">{icon}</div>
-          <h3 className="text-lg font-semibold text-black">{title}</h3>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-full py-8">
+          <p className="text-sm text-gray-500">Loading...</p>
         </div>
-        <div className="text-3xl font-bold text-black">{value}</div>
-      </div>
-
-      {statusCounts && (
-        <div className="flex flex-col gap-2">
-          {Object.entries(statusCounts).map(([status, count]) => (
-            <div
-              key={status}
-              className="flex justify-between items-center text-sm"
-            >
-              <span className="text-black">
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </span>
-              <span
-                className={`px-2 py-1 rounded-full font-semibold text-xs ${
-                  statusColors[status] || "bg-gray-300 text-black"
-                }`}
-              >
-                {count}
-              </span>
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="text-2xl text-black">{icon}</div>
+              <h3 className="text-lg font-semibold text-black">{title}</h3>
             </div>
-          ))}
-        </div>
+            <div className="text-3xl font-bold text-black">{value}</div>
+          </div>
+
+          {statusCounts && (
+            <div className="flex flex-col gap-2">
+              {Object.entries(statusCounts).map(([status, count]) => (
+                <div
+                  key={status}
+                  className="flex justify-between items-center text-sm"
+                >
+                  <span className="text-black">
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </span>
+                  <span
+                    className={`px-2 py-1 rounded-full font-semibold text-xs ${
+                      statusColors[status] || "bg-gray-300 text-black"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
