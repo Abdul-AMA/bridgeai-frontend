@@ -1,9 +1,10 @@
 "use client";
 
+import { use } from "react";
 import { ProjectPageGrid } from "@/components/projects/ProjectPageGrid";
 
 interface ProjectPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // Mock function: replace this with real API/fetch
@@ -17,7 +18,9 @@ const getProjectById = (id: string) => {
 };
 
 export default function ProjectPage({ params }: ProjectPageProps) {
-  const project = getProjectById(params.id);
+  // Unwrap the params promise
+  const { id } = use(params);
+  const project = getProjectById(id);
 
   if (!project) return <p>Project not found</p>;
 

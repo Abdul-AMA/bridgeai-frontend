@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/shared/SearchBar";
 import { CardGrid } from "@/components/shared/CardGrid";
@@ -10,7 +12,7 @@ export default function ProjectsList() {
   ];
 
   return (
-    <div className="flex justify-center mt-14 px-6 sm:px-8  ">
+    <div className="flex justify-center mt-14 px-6 sm:px-8">
       <div className="w-full max-w-6xl">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5">
