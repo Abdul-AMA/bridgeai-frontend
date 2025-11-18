@@ -10,26 +10,40 @@ export interface ApiErrorResponse {
 }
 
 /**
- * Get the access token from localStorage
+ * Get the access token from cookies
  */
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
+  
+  // Get token from cookies
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'token') {
+      return value;
+    }
+  }
+  
+  // Fallback to localStorage for backward compatibility
   return localStorage.getItem("token");
 }
 
 /**
- * Store the access token in localStorage
+ * Store the access token in cookies
  */
 export function setAccessToken(token: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem("token", token);
+  document.cookie = `token=${token}; path=/; max-age=86400`;
 }
 
 /**
- * Remove the access token from localStorage
+ * Remove the access token from cookies and localStorage
  */
 export function clearAccessToken(): void {
   if (typeof window === "undefined") return;
+  // Clear from cookies
+  document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  // Also clear from localStorage for backward compatibility
   localStorage.removeItem("token");
 }
 
