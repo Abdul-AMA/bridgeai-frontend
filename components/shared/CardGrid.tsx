@@ -1,10 +1,10 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { MoreVertical } from "lucide-react";
 import { AvatarList } from "./AvatarList";
 import { StatusBadge } from "./StatusBadge";
 import { useRouter } from "next/navigation";
+import { TeamActionsMenu } from "@/components/teams/TeamActionsMenu";
 
 export function CardGrid<
   T extends {
@@ -14,21 +14,24 @@ export function CardGrid<
     members?: string[];
     team?: string[];
     status: string;
+    description?: string;
   }
 >({
   items,
   type = "project", // "project" or "team"
   showAvatars = true,
+  onItemsChange,
 }: {
   items: T[];
   type?: "project" | "team";
   showAvatars?: boolean;
+  onItemsChange?: () => void;
 }) {
   const router = useRouter();
 
   const handleCardClick = (id: number) => {
     if (type === "team") {
-      router.push(`/teams/${id}`);
+      router.push(`/teams/${id}/dashboard`);
     } else {
       router.push(`/projects/${id}`);
     }
@@ -59,7 +62,15 @@ export function CardGrid<
             ) : (
               <div /> // empty spacer
             )}
-            <MoreVertical className="h-5 w-5 align-right text-muted-foreground cursor-pointer" />
+            {type === "team" ? (
+              <TeamActionsMenu 
+                teamId={item.id}
+                teamName={item.name}
+                teamStatus={item.status}
+                teamDescription={item.description}
+                onActionComplete={onItemsChange}
+              />
+            ) : null}
           </div>
         </Card>
       ))}

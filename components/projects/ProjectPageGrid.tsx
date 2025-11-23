@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Plus, MessageCircle, Users, File, Clock } from "lucide-react";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { useRouter } from "next/navigation";
+import { Plus, MessageCircle, Users, Clock } from "lucide-react";
+import { apiCall } from "@/lib/api";
 
 interface ProjectPageGridProps {
+  projectId: number;
   projectName: string;
-  projectDescription?: string; // now required
+  projectDescription?: string;
   userRole: "BA" | "Client";
 }
 
@@ -30,14 +29,63 @@ const mockDocuments = [
   { id: "3", title: "Meeting Notes", date: "2025-09-12" },
 ];
 
-export function ProjectPageGrid({ projectName, projectDescription, userRole }: ProjectPageGridProps) {
+// StatusBadge component
+function StatusBadge({ status }: { status: string }) {
+  const colors: { [key: string]: string } = {
+    Active: "bg-green-200 text-green-800",
+    Completed: "bg-blue-200 text-blue-800",
+    Pending: "bg-yellow-200 text-yellow-800",
+    Cancelled: "bg-red-200 text-red-800",
+  };
+
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors[status] || "bg-gray-200 text-gray-800"}`}>
+      {status}
+    </span>
+  );
+}
+
+// Button component
+interface ButtonProps {
+  children: React.ReactNode;
+  variant?: "primary" | "default";
+  size?: "sm" | "md" | "lg";
+  className?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}
+
+function Button({ children, variant = "default", size = "md", className = "", onClick, disabled = false }: ButtonProps) {
+  const variants: Record<ButtonProps["variant"] & string, string> = {
+    primary: "bg-[#341bab] text-white hover:bg-[#2a1589] disabled:bg-gray-400 disabled:cursor-not-allowed",
+    default: "bg-gray-200 text-black hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed",
+  };
+  
+  const sizes: Record<ButtonProps["size"] & string, string> = {
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2",
+    lg: "px-6 py-3",
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-lg font-medium transition-colors ${variants[variant]} ${sizes[size]} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function ProjectPageGrid({ projectId, projectName, projectDescription = "", userRole }: ProjectPageGridProps) {
   const [activeTab, setActiveTab] = useState<"dashboard" | "chats" | "settings">("dashboard");
 
   return (
     <div className="flex flex-col gap-6">
       {/* Tabs */}
       <div className="flex border-b border-gray-200">
-        {["dashboard", "chats", "settings"].map((tab) => (
+        {(["dashboard", "chats", "settings"] as const).map((tab) => (
           <button
             key={tab}
             className={`px-4 py-2 font-semibold ${
@@ -45,7 +93,7 @@ export function ProjectPageGrid({ projectName, projectDescription, userRole }: P
                 ? "border-b-2 border-[#341bab] text-black"
                 : "text-gray-500 hover:text-black hover:cursor-pointer"
             }`}
-            onClick={() => setActiveTab(tab as any)}
+            onClick={() => setActiveTab(tab)}
           >
             {tab === "dashboard" ? "Dashboard" : tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
@@ -56,7 +104,11 @@ export function ProjectPageGrid({ projectName, projectDescription, userRole }: P
       {activeTab === "dashboard" && <DashboardTab userRole={userRole} />}
       {activeTab === "chats" && <ChatsTab chats={mockChats} />}
       {activeTab === "settings" && (
-        <SettingsTab projectName={projectName} projectDescription={projectDescription} />
+        <SettingsTab 
+          projectId={projectId}
+          projectName={projectName} 
+          projectDescription={projectDescription} 
+        />
       )}
     </div>
   );
@@ -86,11 +138,10 @@ function DashboardTab({ userRole }: { userRole: "BA" | "Client" }) {
         )}
         <StatCard
           title="Documents"
-          value={mockRequests.length}
+          value={mockDocuments.length}
           statusCounts={{ Active: 1, Completed: 1, Pending: 0 }}
           icon={<Clock />}
         />
-
 
         {/* Quick Actions */}
         <section className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col gap-3">
@@ -118,8 +169,8 @@ function DashboardTab({ userRole }: { userRole: "BA" | "Client" }) {
             <ul className="space-y-3">
               {(userRole === "BA" ? mockChats : mockRequests).map((item) => (
                 <li key={item.id} className="flex justify-between items-center">
-                  <p className="text-black font-medium">{item.name || item.title}</p>
-                  {item.status && <StatusBadge status={item.status} />}
+                  <p className="text-black font-medium">{'name' in item ? item.name : item.title}</p>
+                  {'status' in item && <StatusBadge status={item.status} />}
                 </li>
               ))}
             </ul>
@@ -142,10 +193,9 @@ function DashboardTab({ userRole }: { userRole: "BA" | "Client" }) {
 
 // Chats Tab Content
 function ChatsTab({ chats }: { chats: typeof mockChats }) {
-  const router = useRouter();
-
   const handleChatClick = (id: string) => {
-    router.push(`/chats/${id}`);
+    console.log(`Navigate to chat: ${id}`);
+    // router.push(`/chats/${id}`);
   };
 
   return (
@@ -173,30 +223,107 @@ function ChatsTab({ chats }: { chats: typeof mockChats }) {
 }
 
 // Settings Tab Content
-function SettingsTab({ projectName, projectDescription }: { projectName: string; projectDescription: string }) {
+function SettingsTab({ 
+  projectId,
+  projectName, 
+  projectDescription 
+}: { 
+  projectId: number;
+  projectName: string; 
+  projectDescription: string;
+}) {
+  const [name, setName] = useState(projectName);
+  const [description, setDescription] = useState(projectDescription);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      setError(null);
+      setSuccessMessage(null);
+
+      // Check if anything changed
+      if (name === projectName && description === projectDescription) {
+        setError("No changes to save");
+        return;
+      }
+
+      // Prepare update payload with only changed fields
+      const updateData: { name?: string; description?: string } = {};
+      if (name !== projectName) updateData.name = name;
+      if (description !== projectDescription) updateData.description = description;
+
+      await apiCall(`/api/projects/${projectId}`, {
+        method: "PUT",
+        body: JSON.stringify(updateData),
+      });
+
+      setSuccessMessage("Project updated successfully!");
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to update project"
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 bg-gray-50 p-6 min-h-screen">
       <section className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold mb-4">Project Info</h2>
-          <Button variant="primary" size="sm" className="flex items-center gap-2">
-            Save Changes
+          <h2 className="text-xl font-semibold">Project Info</h2>
+          <Button 
+            variant="primary" 
+            size="sm" 
+            className="flex items-center gap-2"
+            onClick={handleSaveChanges}
+            disabled={isSaving}
+          >
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
+        
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+            {successMessage}
+          </div>
+        )}
+        
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+        
         <div className="flex flex-col gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
             <input
               type="text"
-              value={projectName}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-[#341bab]"
+              disabled={isSaving}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea
-              value={projectDescription}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-[#341bab]"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-[#341bab] min-h-[100px]"
+              disabled={isSaving}
             />
           </div>
         </div>
@@ -221,15 +348,8 @@ export function StatCard({ title, value, statusCounts, icon }: StatCardProps) {
     Cancelled: "bg-red-200 text-black",
   };
 
-  const cardBgColors: { [key: string]: string } = {
-    Projects: "bg-[#eceded]",
-    Chats: "bg-[#eceded]",
-    Requests: "bg-[#eceded]",
-    Documents: "bg-[#eceded]",
-  };
-
   return (
-    <div className={`relative p-5 rounded-2xl ${cardBgColors[title] || "bg-gray-200"}`}>
+    <div className="relative p-5 rounded-2xl bg-[#eceded]">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="text-2xl text-black">{icon}</div>
@@ -253,6 +373,21 @@ export function StatCard({ title, value, statusCounts, icon }: StatCardProps) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Demo
+export default function App() {
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-6">My Project</h1>
+      <ProjectPageGrid 
+        projectId={1}
+        projectName="E-Commerce Platform" 
+        projectDescription="Building a modern e-commerce solution"
+        userRole="BA"
+      />
     </div>
   );
 }

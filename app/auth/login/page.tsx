@@ -19,52 +19,51 @@ export default function LoginPage() {
     setIsLoading(true)
     setErrors({})
 
-try {
-  const formData = new URLSearchParams()
-  formData.append("username", username)
-  formData.append("password", password)
+    try {
+      const formData = new URLSearchParams()
+      formData.append("username", username)
+      formData.append("password", password)
 
-  const response = await fetch("http://localhost:8000/auth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: formData,
-  })
+      const response = await fetch("http://localhost:8000/auth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData,
+      })
 
-  const data = await response.json()
+      const data = await response.json()
 
-  if (!response.ok) {
-    throw new Error(data.detail || "Login failed")
-  }
+      if (!response.ok) {
+        throw new Error(data.detail || "Login failed")
+      }
 
-  // ✅ Validate response has required fields
-  if (!data.access_token) {
-    throw new Error("Invalid response: missing access token")
-  }
-  
-  if (!data.role) {
-    throw new Error("Invalid response: missing user role")
-  }
+      // ✅ Validate response has required fields
+      if (!data.access_token) {
+        throw new Error("Invalid response: missing access token")
+      }
+      
+      if (!data.role) {
+        throw new Error("Invalid response: missing user role")
+      }
 
-  // ✅ Save token and role in cookies (without secure flag for localhost)
-  document.cookie = `token=${data.access_token}; path=/; max-age=86400`
-  document.cookie = `role=${data.role}; path=/; max-age=86400`
+      // ✅ Save token and role in cookies (without secure flag for localhost)
+      document.cookie = `token=${data.access_token}; path=/; max-age=86400`
+      document.cookie = `role=${data.role}; path=/; max-age=86400`
 
-  console.log("✅ Token stored in cookie, role:", data.role)
-  
-  // ✅ Dispatch auth state change event
-  window.dispatchEvent(new Event('auth-state-changed'));
-  
-  // ✅ Redirect based on role
-  router.push(getRoleBasedRedirectPath(data.role))
+      console.log("✅ Token stored in cookie, role:", data.role)
+      
+      // ✅ Dispatch auth state change event
+      window.dispatchEvent(new Event('auth-state-changed'));
+      
+      // ✅ Redirect based on role
+      router.push(getRoleBasedRedirectPath(data.role))
 
-} catch (error) {
-  setErrors({
-    general: error instanceof Error ? error.message : "An error occurred during login",
-  })
-} finally {
-  setIsLoading(false)
-}
-
+    } catch (error) {
+      setErrors({
+        general: error instanceof Error ? error.message : "An error occurred during login",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -111,6 +110,17 @@ try {
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>
+
+          <div className="mt-4 text-center text-sm">
+            <span className="text-muted-foreground">Don't have an account? </span>
+            <Button
+              variant="link"
+              className="p-0 font-semibold text-primary hover:text-primary/80"
+              onClick={() => router.push('/register')}
+            >
+              Register here
+            </Button>
+          </div>
         </form>
       </div>
     </div>

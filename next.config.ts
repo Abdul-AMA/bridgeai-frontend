@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-
   reactStrictMode: true,
-  turbopack: {},
+  
+  // Explicitly acknowledge both bundlers exist
+  turbopack: {}, // This silences the warning
+  
   // Disable Fast Refresh temporarily
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
@@ -11,7 +13,6 @@ const nextConfig: NextConfig = {
     }
     return config;
   }
-
 };
 
 export default nextConfig;
