@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { cn, getRoleBasedRedirectPath } from "@/lib/utils"
+import { login } from "@/lib/api"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -20,21 +21,7 @@ export default function LoginPage() {
     setErrors({})
 
     try {
-      const formData = new URLSearchParams()
-      formData.append("username", username)
-      formData.append("password", password)
-
-      const response = await fetch("http://localhost:8000/auth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData,
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Login failed")
-      }
+      const data = await login(username, password)
 
       // ✅ Validate response has required fields
       if (!data.access_token) {

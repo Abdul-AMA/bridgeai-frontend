@@ -62,11 +62,23 @@ export default function LoginPage() {
         body: formData,
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.detail || "Login failed")
+        if (response.status === 429) {
+          throw new Error("Too many login attempts. You have exceeded the maximum number of login attempts. Please wait a few minutes before trying again.");
+        }
+        
+        try {
+          const data = await response.json();
+          throw new Error(data.detail || "Login failed");
+        } catch (parseError) {
+          if (parseError instanceof Error && parseError.message.includes("Too many")) {
+            throw parseError;
+          }
+          throw new Error("Login failed. Please check your credentials.");
+        }
       }
+
+      const data = await response.json()
 
       // Store the token in both localStorage and cookie
       localStorage.setItem("token", data.access_token);
@@ -140,8 +152,13 @@ export default function LoginPage() {
           </div>
 
           {errors.general && (
-            <div className="text-sm text-destructive mt-2">
-              {errors.general}
+            <div className={`mt-2 p-3 rounded-md ${errors.general.includes('Too many') ? 'bg-orange-50 border border-orange-200' : 'bg-red-50 border border-red-200'}`}>
+              <p className={`text-sm font-medium ${errors.general.includes('Too many') ? 'text-orange-800' : 'text-red-800'}`}>
+                {errors.general.includes('Too many') && (
+                  <span className="inline-block mr-2">⚠️</span>
+                )}
+                {errors.general}
+              </p>
             </div>
           )}
 
