@@ -19,7 +19,7 @@ import { getCookie } from "@/lib/utils";
 import { NotificationBell } from "./NotificationBell";
 
 interface Team {
-  id: string;
+  id: number;
   name: string;
 }
 
@@ -84,7 +84,10 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
   const [currentTeamId, setCurrentTeamId] = useState(initialTeamId || pathname.split("/")[2] || "");
 
   // Current team name for display
-  const currentTeam = teams.find(t => t.id === currentTeamId)?.name || "Select Team";
+  // Convert currentTeamId to number for comparison since API returns numeric IDs
+  const currentTeam = loadingTeams && currentTeamId 
+    ? "Loading..." 
+    : teams.find(t => t.id === Number(currentTeamId))?.name || "Select Team";
 
   // Keep parent in sync
   useEffect(() => {
@@ -92,8 +95,8 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
   }, [initialTeamId]);
 
   const handleTeamSelect = (team: Team) => {
-    setCurrentTeamId(team.id);
-    if (setParentTeamId) setParentTeamId(team.id);
+    setCurrentTeamId(String(team.id));
+    if (setParentTeamId) setParentTeamId(String(team.id));
     router.push(`/teams/${team.id}/dashboard`);
     setOpen(false);
   };
@@ -176,7 +179,7 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
                             <TeamItem
                               key={team.id}
                               name={team.name}
-                              isActive={team.id === currentTeamId}
+                              isActive={team.id === Number(currentTeamId)}
                               onClick={() => handleTeamSelect(team)}
                             />
                           ))}
@@ -192,7 +195,7 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
                             <TeamItem
                               key={team.id}
                               name={team.name}
-                              isActive={team.id === currentTeamId}
+                              isActive={team.id === Number(currentTeamId)}
                               onClick={() => handleTeamSelect(team)}
                             />
                           ))}
