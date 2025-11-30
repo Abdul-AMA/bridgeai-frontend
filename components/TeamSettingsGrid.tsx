@@ -63,7 +63,7 @@ export function TeamSettingsGrid({
 
   useEffect(() => {
     setUpdatingName(teamName);
-    setUpdatingDescription(teamDescription);
+    setUpdatingDescription(teamDescription || '');
   }, [teamName, teamDescription]);
 
   const fetchPendingInvites = async () => {
