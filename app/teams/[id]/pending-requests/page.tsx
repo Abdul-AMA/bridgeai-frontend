@@ -117,7 +117,7 @@ export default function PendingRequestsPage({ params }: PendingRequestsPageProps
       <div className="w-full max-w-7xl">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight">Pending Project Requests</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Project Requests</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Review and approve or reject client project requests
           </p>

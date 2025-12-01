@@ -10,6 +10,8 @@ export interface Project {
   description: string | null;
   team_id: number;
   created_by: number;
+  created_by_name?: string | null;
+  created_by_email?: string | null;
   status: "pending" | "approved" | "rejected" | "active" | "completed" | "archived";
   approved_by: number | null;
   approved_at: string | null;
