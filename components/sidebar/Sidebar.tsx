@@ -51,11 +51,11 @@ export function Sidebar({ currentTeamId }: SidebarProps) {
     { href: `/teams/${currentTeamId}/projects`, label: "Projects", icon: FolderGit2Icon },
   ];
 
-  // Only add "Pending Requests" link for confirmed BAs (don't show while loading)
+  // Only add "Project Requests" link for confirmed BAs (don't show while loading)
   if (userRole === "ba") {
     navItems.push({
       href: `/teams/${currentTeamId}/pending-requests`,
-      label: "Pending Requests",
+      label: "Project Requests",
       icon: ClipboardList,
     });
   }

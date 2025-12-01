@@ -77,8 +77,13 @@ export function ProjectDetailsDialog({
 
           {/* Created By */}
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Created By (User ID)</label>
-            <p className="mt-1 text-sm">{project.created_by}</p>
+            <label className="text-sm font-medium text-muted-foreground">Created By</label>
+            <p className="mt-1 text-sm">
+              {project.created_by_name || `User ${project.created_by}`}
+              {project.created_by_email && (
+                <span className="text-muted-foreground ml-2">({project.created_by_email})</span>
+              )}
+            </p>
           </div>
 
           {/* Created At */}

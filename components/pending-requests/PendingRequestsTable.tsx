@@ -74,7 +74,7 @@ export function PendingRequestsTable({
                   Description
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                  Team ID
+                  Created By
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                   Requested Date
@@ -99,7 +99,9 @@ export function PendingRequestsTable({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="text-sm">{project.team_id}</div>
+                    <div className="text-sm">
+                      {project.created_by_name || `User ${project.created_by}`}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-sm">
