@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -28,10 +30,21 @@ export function ChatUI({ chat }: ChatUIProps) {
   const [input, setInput] = useState("");
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const [returnTo, setReturnTo] = useState<string | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("chatReturnTo");
+      if (stored) setReturnTo(stored);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -73,9 +86,28 @@ export function ChatUI({ chat }: ChatUIProps) {
     <div className="flex flex-col h-screen bg-white">
       {/* Chat Header */}
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">{chat.name}</h2>
-          <p className="text-sm text-gray-500">{chat.participants.join(", ")}</p>
+        <div className="flex items-center gap-3">
+          <button
+            aria-label="Back to project"
+            onClick={() => {
+              if (returnTo) {
+                try {
+                  sessionStorage.removeItem("chatReturnTo");
+                } catch {}
+                router.push(returnTo);
+              } else {
+                router.back();
+              }
+            }}
+            className="p-2 rounded hover:bg-gray-100"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">{chat.name}</h2>
+            <p className="text-sm text-gray-500">{chat.participants.join(", ")}</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Button onClick={() => setOpenGenerate(true)} variant="primary">
@@ -97,7 +129,7 @@ export function ChatUI({ chat }: ChatUIProps) {
             <div
               className={`rounded-2xl px-4 py-2 max-w-md shadow ${
                 msg.sender === "You"
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-[#341bab] text-white"
                   : "bg-white text-gray-800 border border-gray-200"
               }`}
             >
@@ -183,3 +215,4 @@ export function ChatUI({ chat }: ChatUIProps) {
     </div>
   );
 }
+

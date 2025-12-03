@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, MessageCircle, Users, Clock } from "lucide-react";
 import { fetchProjectChats } from "@/lib/api-chats";
 import { SearchBar } from "@/components/shared/SearchBar";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiCall } from "@/lib/api";
 
 interface ProjectPageGridProps {
@@ -13,6 +13,7 @@ interface ProjectPageGridProps {
   projectDescription?: string;
   userRole: "BA" | "Client";
 }
+
 
 // Mock data
 const mockChats = [
@@ -81,8 +82,11 @@ function Button({ children, variant = "default", size = "md", className = "", on
   );
 }
 
-export function ProjectPageGrid({ projectId, projectName, projectDescription = "", userRole }: ProjectPageGridProps) {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "chats" | "settings">("dashboard");
+export function ProjectPageGrid({ projectId, projectName, projectDescription = "", userRole, initialTab }: ProjectPageGridProps & { initialTab?: "dashboard" | "chats" | "settings" }) {
+  const searchParams = useSearchParams?.();
+  const [activeTab, setActiveTab] = useState<"dashboard" | "chats" | "settings">(
+    initialTab || (searchParams?.get("tab") as "dashboard" | "chats" | "settings") || "dashboard"
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -218,7 +222,15 @@ function ChatsTab({ chats, projectId }: { chats: typeof mockChats; projectId: nu
   }, [projectId]);
 
   const handleChatClick = (id: string) => {
-    router.push(`/projects/${projectId}/chats/${id}`);
+    // Store the return path in sessionStorage (keeps chat URL clean). Use
+    // a clearer path `/projects/:id/chats` so the project return URL is readable.
+    try {
+      sessionStorage.setItem("chatReturnTo", `/projects/${projectId}/chats`);
+    } catch (e) {
+      // ignore sessionStorage errors
+    }
+
+    router.push(`/chats/${id}`);
   };
 
   return (
