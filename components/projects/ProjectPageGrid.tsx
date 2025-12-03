@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, MessageCircle, Users, Clock } from "lucide-react";
+import { fetchProjectChats } from "@/lib/api-chats";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { useRouter } from "next/navigation";
 import { apiCall } from "@/lib/api";
 
 interface ProjectPageGridProps {
@@ -102,7 +105,7 @@ export function ProjectPageGrid({ projectId, projectName, projectDescription = "
 
       {/* Tab Content */}
       {activeTab === "dashboard" && <DashboardTab userRole={userRole} />}
-      {activeTab === "chats" && <ChatsTab chats={mockChats} />}
+      {activeTab === "chats" && <ChatsTab projectId={projectId} chats={mockChats} />}
       {activeTab === "settings" && (
         <SettingsTab 
           projectId={projectId}
@@ -192,31 +195,63 @@ function DashboardTab({ userRole }: { userRole: "BA" | "Client" }) {
 }
 
 // Chats Tab Content
-function ChatsTab({ chats }: { chats: typeof mockChats }) {
+function ChatsTab({ chats, projectId }: { chats: typeof mockChats; projectId: number }) {
+  const [items, setItems] = useState<typeof mockChats>(chats);
+  const [isLoading, setIsLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const router = useRouter();
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchProjectChats(projectId);
+        setItems(data as typeof mockChats);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    load();
+  }, [projectId]);
+
   const handleChatClick = (id: string) => {
-    console.log(`Navigate to chat: ${id}`);
-    // router.push(`/chats/${id}`);
+    router.push(`/projects/${projectId}/chats/${id}`);
   };
 
   return (
     <div className="bg-gray-50 p-6 min-h-screen flex flex-col gap-4">
       <h2 className="text-xl font-semibold mb-4">Chats</h2>
       <div className="bg-white border border-gray-200 rounded-xl overflow-y-auto max-h-[70vh]">
-        <ul>
-          {chats.map((chat) => (
-            <li
-              key={chat.id}
-              onClick={() => handleChatClick(chat.id)}
-              className="flex justify-between items-center px-4 py-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
-            >
-              <div>
-                <p className="font-medium text-black">{chat.name}</p>
-                <p className="text-gray-500 text-sm">{chat.lastMessage}</p>
-              </div>
-              <p className="text-gray-400 text-xs">{chat.date}</p>
-            </li>
-          ))}
-        </ul>
+        {isLoading ? (
+          <div className="p-4 text-center text-gray-500">Loading chats...</div>
+        ) : (
+          <div className="p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <SearchBar placeholder="Search chats..." value={search} onChange={setSearch} />
+            </div>
+
+            <ul>
+              {items
+                .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || (c.lastMessage || "").toLowerCase().includes(search.toLowerCase()))
+                .map((chat) => (
+                  <li
+                    key={chat.id}
+                    onClick={() => handleChatClick(chat.id)}
+                    className="flex justify-between items-center px-4 py-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                  >
+                    <div>
+                      <p className="font-medium text-black">{chat.name}</p>
+                      <p className="text-gray-500 text-sm">{chat.lastMessage}</p>
+                    </div>
+                    <p className="text-gray-400 text-xs">{chat.date}</p>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
