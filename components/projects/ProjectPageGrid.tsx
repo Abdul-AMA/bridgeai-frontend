@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, MessageCircle, Users, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, MessageCircle, Users, Clock, Pencil, Trash2, Loader2 } from "lucide-react";
+import { ChatDetail, ChatSummary, createProjectChat, deleteProjectChat, fetchProjectChats, updateProjectChat } from "@/lib/api-chats";
+import { SearchBar } from "@/components/shared/SearchBar";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiCall } from "@/lib/api";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 interface ProjectPageGridProps {
   projectId: number;
@@ -10,6 +16,7 @@ interface ProjectPageGridProps {
   projectDescription?: string;
   userRole: "BA" | "Client";
 }
+
 
 // Mock data
 const mockChats = [
@@ -78,8 +85,17 @@ function Button({ children, variant = "default", size = "md", className = "", on
   );
 }
 
-export function ProjectPageGrid({ projectId, projectName, projectDescription = "", userRole }: ProjectPageGridProps) {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "chats" | "settings">("dashboard");
+export function ProjectPageGrid({ projectId, projectName, projectDescription = "", userRole, initialTab }: ProjectPageGridProps & { initialTab?: "dashboard" | "chats" | "settings" }) {
+  const searchParams = useSearchParams?.();
+  const [activeTab, setActiveTab] = useState<"dashboard" | "chats" | "settings">(
+    initialTab || (searchParams?.get("tab") as "dashboard" | "chats" | "settings") || "dashboard"
+  );
+  const [createChatTrigger, setCreateChatTrigger] = useState<number>(0);
+
+  const handleStartChat = () => {
+    setActiveTab("chats");
+    setCreateChatTrigger(Date.now());
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -101,8 +117,8 @@ export function ProjectPageGrid({ projectId, projectName, projectDescription = "
       </div>
 
       {/* Tab Content */}
-      {activeTab === "dashboard" && <DashboardTab userRole={userRole} />}
-      {activeTab === "chats" && <ChatsTab chats={mockChats} />}
+      {activeTab === "dashboard" && <DashboardTab userRole={userRole} onStartChat={handleStartChat} />}
+      {activeTab === "chats" && <ChatsTab projectId={projectId} createChatTrigger={createChatTrigger} />}
       {activeTab === "settings" && (
         <SettingsTab 
           projectId={projectId}
@@ -115,7 +131,7 @@ export function ProjectPageGrid({ projectId, projectName, projectDescription = "
 }
 
 // Dashboard Tab Content
-function DashboardTab({ userRole }: { userRole: "BA" | "Client" }) {
+function DashboardTab({ userRole, onStartChat }: { userRole: "BA" | "Client"; onStartChat: () => void }) {
   return (
     <div className="flex flex-col gap-6 bg-gray-50 p-6 min-h-screen">
       {/* Top Row: Two Stat Cards + Quick Actions */}
@@ -149,7 +165,7 @@ function DashboardTab({ userRole }: { userRole: "BA" | "Client" }) {
           <Button variant="primary" size="lg" className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> Add Project
           </Button>
-          <Button variant="primary" size="lg" className="flex items-center gap-2">
+          <Button variant="primary" size="lg" className="flex items-center gap-2" onClick={onStartChat}>
             <MessageCircle className="w-4 h-4" /> Start Chat
           </Button>
           <Button variant="primary" size="lg" className="flex items-center gap-2">
@@ -192,32 +208,268 @@ function DashboardTab({ userRole }: { userRole: "BA" | "Client" }) {
 }
 
 // Chats Tab Content
-function ChatsTab({ chats }: { chats: typeof mockChats }) {
-  const handleChatClick = (id: string) => {
-    console.log(`Navigate to chat: ${id}`);
-    // router.push(`/chats/${id}`);
+function ChatsTab({ projectId, createChatTrigger }: { projectId: number; createChatTrigger?: number }) {
+  const [items, setItems] = useState<ChatSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [chatName, setChatName] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "rename">("create");
+  const [selectedChat, setSelectedChat] = useState<ChatSummary | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState<ChatSummary | null>(null);
+  const router = useRouter();
+
+  const normalizeChat = (chat: ChatSummary | ChatDetail): ChatSummary => ({
+    ...chat,
+    message_count:
+      typeof chat.message_count === "number"
+        ? chat.message_count
+        : Array.isArray((chat as any).messages)
+          ? (chat as any).messages.length
+          : 0,
+  });
+
+  const loadChats = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await fetchProjectChats(projectId);
+      setItems(data.map(normalizeChat));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load chats");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadChats();
+  }, [projectId]);
+
+  useEffect(() => {
+    if (createChatTrigger) {
+      openCreateModal();
+    }
+  }, [createChatTrigger]);
+
+  const openCreateModal = () => {
+    setModalMode("create");
+    setChatName("");
+    setSelectedChat(null);
+    setActionError(null);
+    setModalOpen(true);
+  };
+
+  const openRenameModal = (chat: ChatSummary) => {
+    setModalMode("rename");
+    setChatName(chat.name);
+    setSelectedChat(chat);
+    setActionError(null);
+    setModalOpen(true);
+  };
+
+  const handleSaveChat = async () => {
+    const trimmed = chatName.trim();
+    if (!trimmed) {
+      setActionError("Chat name is required");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setActionError(null);
+
+      if (modalMode === "create") {
+        const created = await createProjectChat(projectId, { name: trimmed });
+        setItems((prev) => [normalizeChat(created), ...prev]);
+        setSuccessMessage("Chat created successfully");
+      } else if (selectedChat) {
+        const updated = await updateProjectChat(projectId, selectedChat.id, { name: trimmed });
+        setItems((prev) => prev.map((chat) => (chat.id === updated.id ? normalizeChat(updated) : chat)));
+        setSuccessMessage("Chat renamed successfully");
+      }
+
+      setModalOpen(false);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Unable to save chat");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!chatToDelete) return;
+
+    try {
+      setDeletingId(chatToDelete.id);
+      setActionError(null);
+      await deleteProjectChat(projectId, chatToDelete.id);
+      setItems((prev) => prev.filter((c) => c.id !== chatToDelete.id));
+      setSuccessMessage("Chat deleted successfully");
+      setDeleteModalOpen(false);
+      setChatToDelete(null);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Unable to delete chat");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleChatClick = (id: number) => {
+    // Store the return path in sessionStorage (keeps chat URL clean). Use
+    // a clearer path `/projects/:id/chats` so the project return URL is readable.
+    try {
+      sessionStorage.setItem("chatReturnTo", `/projects/${projectId}/chats`);
+    } catch (e) {
+      // ignore sessionStorage errors
+    }
+
+    router.push(`/chats/${id}?projectId=${projectId}`);
+  };
+
+  const filteredChats = items.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
+
+  const statusStyles: Record<string, string> = {
+    active: "bg-green-100 text-green-800",
+    completed: "bg-blue-100 text-blue-800",
   };
 
   return (
     <div className="bg-gray-50 p-6 min-h-screen flex flex-col gap-4">
-      <h2 className="text-xl font-semibold mb-4">Chats</h2>
-      <div className="bg-white border border-gray-200 rounded-xl overflow-y-auto max-h-[70vh]">
-        <ul>
-          {chats.map((chat) => (
-            <li
-              key={chat.id}
-              onClick={() => handleChatClick(chat.id)}
-              className="flex justify-between items-center px-4 py-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
-            >
-              <div>
-                <p className="font-medium text-black">{chat.name}</p>
-                <p className="text-gray-500 text-sm">{chat.lastMessage}</p>
-              </div>
-              <p className="text-gray-400 text-xs">{chat.date}</p>
-            </li>
-          ))}
-        </ul>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold mb-1">Chats</h2>
+          <p className="text-sm text-gray-500">Create, rename, or delete chats for this project.</p>
+        </div>
+        <Button variant="primary" size="md" className="flex items-center gap-2" onClick={openCreateModal}>
+          <Plus className="w-4 h-4" /> Add Chat
+        </Button>
       </div>
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {isLoading ? (
+          <div className="p-4 text-center text-gray-500 flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading chats...
+          </div>
+        ) : error ? (
+          <div className="p-4 text-center text-red-600">{error}</div>
+        ) : (
+          <>
+            <div className="p-4 flex items-center gap-3 border-b border-gray-100">
+              <SearchBar placeholder="Search chats..." value={search} onChange={setSearch} />
+              <span className="text-sm text-gray-500 whitespace-nowrap">{filteredChats.length} chats</span>
+            </div>
+
+            {successMessage && (
+              <div className="px-4 py-2 text-sm text-green-700 border-b border-gray-100 bg-green-50">
+                {successMessage}
+              </div>
+            )}
+            {actionError && (
+              <div className="px-4 py-2 text-sm text-red-600 border-b border-gray-100 bg-red-50">{actionError}</div>
+            )}
+
+            {filteredChats.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">No chats yet. Start one to begin collaborating.</div>
+            ) : (
+              <ul>
+                {filteredChats.map((chat) => (
+                  <li
+                    key={chat.id}
+                    onClick={() => handleChatClick(chat.id)}
+                    className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium text-black">{chat.name}</p>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                        <Badge className={statusStyles[chat.status] || "bg-gray-100 text-gray-700"}>
+                          {chat.status}
+                        </Badge>
+                        <span>{chat.message_count} messages</span>
+                        <span>Started {new Date(chat.started_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        aria-label="Rename chat"
+                        className="p-2 rounded hover:bg-gray-100 text-gray-600"
+                        onClick={() => openRenameModal(chat)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        aria-label="Delete chat"
+                        className="p-2 rounded hover:bg-red-50 text-red-600 disabled:opacity-50"
+                        disabled={deletingId === chat.id}
+                        onClick={() => {
+                          setChatToDelete(chat);
+                          setDeleteModalOpen(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
+
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{modalMode === "create" ? "Create chat" : "Rename chat"}</DialogTitle>
+            <DialogDescription>Give this chat a clear, descriptive name.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
+              Chat name
+              <Input
+                className="mt-1"
+                value={chatName}
+                onChange={(e) => setChatName(e.target.value)}
+                placeholder="e.g. Client kickoff discussion"
+              />
+            </label>
+            {actionError && <p className="text-sm text-red-600">{actionError}</p>}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="default" size="md" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button variant="primary" size="md" onClick={handleSaveChat} disabled={isSaving}>
+              {isSaving ? "Saving..." : modalMode === "create" ? "Create chat" : "Update chat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete chat</DialogTitle>
+            <DialogDescription>This action cannot be undone. Messages in this chat will be removed.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-gray-700">
+              {chatToDelete ? `Are you sure you want to delete "${chatToDelete.name}"?` : "Are you sure you want to delete this chat?"}
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="default" size="md" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
+            <Button variant="primary" size="md" onClick={handleDelete} disabled={deletingId !== null}>
+              {deletingId !== null ? "Deleting..." : "Delete chat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
