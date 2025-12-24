@@ -279,23 +279,36 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       setIsGenerating(true);
       setCrsError(null);
       
-      // Compile chat conversation into content
-      const conversationText = messages
-        .filter(msg => msg.sender_type !== "system")
-        .map(msg => `${msg.sender_type === "client" ? "Client" : "AI"}: ${msg.content}`)
-        .join("\n\n");
+      // Extract requirements from conversation
+      const clientMessages = messages.filter(msg => msg.sender_type === "client");
+      const aiMessages = messages.filter(msg => msg.sender_type === "ai");
 
-      // Extract key points from conversation (simple extraction)
-      const summaryPoints = messages
-        .filter(msg => msg.sender_type === "client")
-        .map(msg => msg.content)
-        .filter(content => content.length > 20)
-        .slice(0, 5); // Take first 5 meaningful client messages
+      // Build structured CRS content
+      const crsStructure = {
+        project_title: `Project ${chat.project_id}`,
+        project_description: clientMessages.slice(0, 2).map(m => m.content).join(" "),
+        functional_requirements: clientMessages
+          .filter(msg => msg.content.length > 30)
+          .map(msg => msg.content)
+          .slice(0, 10),
+        project_objectives: [],
+        target_users: "",
+        timeline_constraints: "",
+        budget_constraints: "",
+        success_metrics: []
+      };
+
+      // Extract summary points
+      const summaryPoints = [
+        crsStructure.project_title,
+        `${crsStructure.functional_requirements.length} functional requirements`,
+        `Based on ${clientMessages.length} client messages`,
+      ];
 
       // Create CRS document
       const newCRS = await createCRS({
         project_id: chat.project_id,
-        content: conversationText,
+        content: JSON.stringify(crsStructure, null, 2),
         summary_points: summaryPoints,
       });
 
@@ -448,15 +461,15 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
 
       {/* CRS Draft Dialog */}
       <Dialog open={openDraft} onOpenChange={setOpenDraft}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>CRS Document</DialogTitle>
             <DialogDescription>
-              Review the latest CRS document and its details.
+              Review the Customer Requirements Specification document.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 space-y-4">
+          <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-2">
             {crsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -470,29 +483,29 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
               </div>
             ) : (
               <>
-                <div className="flex gap-4">
-                  <div className="p-3 bg-gray-100 rounded-lg flex-1">
-                    <p className="text-sm font-semibold text-gray-600">Version</p>
-                    <p className="text-2xl font-bold text-black">{latestCRS.version}</p>
+                {/* Header Info */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <p className="text-xs font-semibold text-gray-600">Version</p>
+                    <p className="text-xl font-bold text-black">{latestCRS.version}</p>
                   </div>
-                  <div className="p-3 bg-gray-100 rounded-lg flex-1">
-                    <p className="text-sm font-semibold text-gray-600">Status</p>
-                    <div className="mt-2">
-                      <CRSStatusBadge status={latestCRS.status} />
-                    </div>
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <p className="text-xs font-semibold text-gray-600 mb-1">Status</p>
+                    <CRSStatusBadge status={latestCRS.status} />
                   </div>
-                  <div className="p-3 bg-gray-100 rounded-lg flex-1">
-                    <p className="text-sm font-semibold text-gray-600">Created</p>
+                  <div className="p-3 bg-gray-100 rounded-lg">
+                    <p className="text-xs font-semibold text-gray-600">Created</p>
                     <p className="text-sm font-medium text-black mt-1">
                       {new Date(latestCRS.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
+                {/* Summary Points */}
                 {latestCRS.summary_points && latestCRS.summary_points.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Summary Points</label>
-                    <ul className="list-disc list-inside space-y-1 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-2">Key Points</h3>
+                    <ul className="list-disc list-inside space-y-1">
                       {latestCRS.summary_points.map((point, idx) => (
                         <li key={idx} className="text-sm text-gray-700">{point}</li>
                       ))}
@@ -500,17 +513,97 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Document Content</label>
-                  <div className="w-full min-h-[200px] max-h-[400px] overflow-y-auto rounded-md border p-3 text-black bg-gray-50">
-                    <pre className="whitespace-pre-wrap text-sm">{latestCRS.content}</pre>
-                  </div>
+                {/* Structured CRS Content */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
+                  {(() => {
+                    try {
+                      const crsData = JSON.parse(latestCRS.content);
+                      return (
+                        <>
+                          {crsData.project_title && (
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900 mb-2">{crsData.project_title}</h3>
+                            </div>
+                          )}
+
+                          {crsData.project_description && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Project Description</h4>
+                              <p className="text-sm text-gray-600">{crsData.project_description}</p>
+                            </div>
+                          )}
+
+                          {crsData.project_objectives && crsData.project_objectives.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Objectives</h4>
+                              <ul className="list-disc list-inside space-y-1">
+                                {crsData.project_objectives.map((obj: string, idx: number) => (
+                                  <li key={idx} className="text-sm text-gray-600">{obj}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {crsData.functional_requirements && crsData.functional_requirements.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Functional Requirements</h4>
+                              <ul className="list-decimal list-inside space-y-1">
+                                {crsData.functional_requirements.map((req: string, idx: number) => (
+                                  <li key={idx} className="text-sm text-gray-600">{req}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {crsData.target_users && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Target Users</h4>
+                              <p className="text-sm text-gray-600">{crsData.target_users}</p>
+                            </div>
+                          )}
+
+                          {crsData.timeline_constraints && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Timeline</h4>
+                              <p className="text-sm text-gray-600">{crsData.timeline_constraints}</p>
+                            </div>
+                          )}
+
+                          {crsData.budget_constraints && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Budget</h4>
+                              <p className="text-sm text-gray-600">{crsData.budget_constraints}</p>
+                            </div>
+                          )}
+
+                          {crsData.success_metrics && crsData.success_metrics.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Success Metrics</h4>
+                              <ul className="list-disc list-inside space-y-1">
+                                {crsData.success_metrics.map((metric: string, idx: number) => (
+                                  <li key={idx} className="text-sm text-gray-600">{metric}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      );
+                    } catch (e) {
+                      // Fallback to raw content if not valid JSON
+                      return (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Document Content</h4>
+                          <div className="text-sm text-gray-600 whitespace-pre-wrap">{latestCRS.content}</div>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
               </>
             )}
           </div>
 
-          <DialogFooter className="mt-6 flex gap-2">
+          <DialogFooter className="mt-4 flex gap-2">
             <Button onClick={() => setOpenDraft(false)} variant="outline">Close</Button>
             {latestCRS && latestCRS.status === "draft" && (
               <Button onClick={handleSendToBA} variant="primary">Submit for Review</Button>
