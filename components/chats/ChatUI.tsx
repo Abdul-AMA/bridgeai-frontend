@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ChatDetail, ChatMessage as ChatMessageType } from "@/lib/api-chats";
 import { ChatMessage, TypingIndicator, ChatMessageData } from "@/components/chats/ChatMessage";
 import { getAccessToken } from "@/lib/api";
-import { CRSOut, fetchLatestCRS, createCRS, updateCRSStatus } from "@/lib/api-crs";
+import { CRSOut, fetchLatestCRS, updateCRSStatus } from "@/lib/api-crs";
 import { CRSStatusBadge } from "@/components/shared/CRSStatusBadge";
 
 interface ChatUIProps {
@@ -111,6 +111,12 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       try {
         const data = JSON.parse(event.data);
         console.log("[ChatUI] Parsed message data:", data);
+
+        // If AI says CRS is complete, refresh latest CRS from backend
+        if (data?.crs?.is_complete && chat.project_id) {
+          // Fire and forget; UI state updated when fetch resolves
+          loadCRS();
+        }
 
         if (data?.error) {
           console.error("[ChatUI] Server error:", data.error);
@@ -254,16 +260,18 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
   }, [openDraft, chat.project_id]);
 
   const loadCRS = async () => {
-    if (!chat.project_id) return;
+    if (!chat.project_id) return null;
     
     try {
       setCrsLoading(true);
       setCrsError(null);
       const crs = await fetchLatestCRS(chat.project_id);
       setLatestCRS(crs);
+      return crs;
     } catch (err) {
       setCrsError(err instanceof Error ? err.message : "Failed to load CRS");
       setLatestCRS(null);
+      return null;
     } finally {
       setCrsLoading(false);
     }
@@ -278,43 +286,13 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     try {
       setIsGenerating(true);
       setCrsError(null);
-      
-      // Extract requirements from conversation
-      const clientMessages = messages.filter(msg => msg.sender_type === "client");
-      const aiMessages = messages.filter(msg => msg.sender_type === "ai");
-
-      // Build structured CRS content
-      const crsStructure = {
-        project_title: `Project ${chat.project_id}`,
-        project_description: clientMessages.slice(0, 2).map(m => m.content).join(" "),
-        functional_requirements: clientMessages
-          .filter(msg => msg.content.length > 30)
-          .map(msg => msg.content)
-          .slice(0, 10),
-        project_objectives: [],
-        target_users: "",
-        timeline_constraints: "",
-        budget_constraints: "",
-        success_metrics: []
-      };
-
-      // Extract summary points
-      const summaryPoints = [
-        crsStructure.project_title,
-        `${crsStructure.functional_requirements.length} functional requirements`,
-        `Based on ${clientMessages.length} client messages`,
-      ];
-
-      // Create CRS document
-      const newCRS = await createCRS({
-        project_id: chat.project_id,
-        content: JSON.stringify(crsStructure, null, 2),
-        summary_points: summaryPoints,
-      });
-
-      setLatestCRS(newCRS);
-      setOpenGenerate(false);
-      setOpenDraft(true);
+      const crs = await loadCRS();
+      if (crs) {
+        setOpenGenerate(false);
+        setOpenDraft(true);
+      } else {
+        alert("No CRS document is available yet. Please let the agent finish generating it.");
+      }
     } catch (err) {
       setCrsError(err instanceof Error ? err.message : "Failed to generate CRS");
       alert("Failed to generate CRS. Please try again.");
@@ -546,42 +524,226 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
 
                           {crsData.functional_requirements && crsData.functional_requirements.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Functional Requirements</h4>
-                              <ul className="list-decimal list-inside space-y-1">
-                                {crsData.functional_requirements.map((req: string, idx: number) => (
-                                  <li key={idx} className="text-sm text-gray-600">{req}</li>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-2">Functional Requirements</h4>
+                              <div className="space-y-3">
+                                {crsData.functional_requirements.map((req: any, idx: number) => {
+                                  // Handle structured requirement objects (preferred format)
+                                  if (typeof req === "object" && req !== null) {
+                                    return (
+                                      <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="font-medium text-gray-900">
+                                            {req.id && <span className="text-[#341bab] mr-2">{req.id}</span>}
+                                            {req.title || "Requirement"}
+                                          </span>
+                                          {req.priority && (
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                              req.priority === "high" ? "bg-red-100 text-red-700" :
+                                              req.priority === "medium" ? "bg-yellow-100 text-yellow-700" :
+                                              "bg-green-100 text-green-700"
+                                            }`}>
+                                              {req.priority}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {req.description && (
+                                          <p className="text-sm text-gray-600">{req.description}</p>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  // Handle string requirements (fallback for older data)
+                                  if (typeof req === "string") {
+                                    const trimmed = req.trim();
+                                    return (
+                                      <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                        <p className="text-sm text-gray-600">{trimmed}</p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {crsData.target_users && crsData.target_users.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Target Users</h4>
+                              {Array.isArray(crsData.target_users) ? (
+                                <ul className="list-disc list-inside space-y-1">
+                                  {crsData.target_users.map((user: string, idx: number) => (
+                                    <li key={idx} className="text-sm text-gray-600">{user}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-sm text-gray-600">{crsData.target_users}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Non-Functional Requirements Section */}
+                          {(crsData.security_requirements?.length > 0 || 
+                            crsData.performance_requirements?.length > 0 || 
+                            crsData.scalability_requirements?.length > 0) && (
+                            <div className="border-t border-gray-200 pt-4">
+                              <h4 className="text-sm font-semibold text-gray-800 mb-3">Non-Functional Requirements</h4>
+                              
+                              {crsData.security_requirements?.length > 0 && (
+                                <div className="mb-3">
+                                  <h5 className="text-xs font-medium text-gray-600 mb-1">🔒 Security</h5>
+                                  <ul className="list-disc list-inside space-y-0.5">
+                                    {crsData.security_requirements.map((req: string, idx: number) => (
+                                      <li key={idx} className="text-sm text-gray-600">{req}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {crsData.performance_requirements?.length > 0 && (
+                                <div className="mb-3">
+                                  <h5 className="text-xs font-medium text-gray-600 mb-1">⚡ Performance</h5>
+                                  <ul className="list-disc list-inside space-y-0.5">
+                                    {crsData.performance_requirements.map((req: string, idx: number) => (
+                                      <li key={idx} className="text-sm text-gray-600">{req}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {crsData.scalability_requirements?.length > 0 && (
+                                <div className="mb-3">
+                                  <h5 className="text-xs font-medium text-gray-600 mb-1">📈 Scalability</h5>
+                                  <ul className="list-disc list-inside space-y-0.5">
+                                    {crsData.scalability_requirements.map((req: string, idx: number) => (
+                                      <li key={idx} className="text-sm text-gray-600">{req}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Technology Stack */}
+                          {crsData.technology_stack && Object.keys(crsData.technology_stack).some(
+                            k => crsData.technology_stack[k]?.length > 0
+                          ) && (
+                            <div className="border-t border-gray-200 pt-4">
+                              <h4 className="text-sm font-semibold text-gray-800 mb-2">🛠️ Technology Stack</h4>
+                              <div className="grid grid-cols-2 gap-2">
+                                {crsData.technology_stack.frontend?.length > 0 && (
+                                  <div className="bg-blue-50 rounded p-2">
+                                    <span className="text-xs font-medium text-blue-800">Frontend:</span>
+                                    <p className="text-sm text-blue-700">{crsData.technology_stack.frontend.join(", ")}</p>
+                                  </div>
+                                )}
+                                {crsData.technology_stack.backend?.length > 0 && (
+                                  <div className="bg-green-50 rounded p-2">
+                                    <span className="text-xs font-medium text-green-800">Backend:</span>
+                                    <p className="text-sm text-green-700">{crsData.technology_stack.backend.join(", ")}</p>
+                                  </div>
+                                )}
+                                {crsData.technology_stack.database?.length > 0 && (
+                                  <div className="bg-purple-50 rounded p-2">
+                                    <span className="text-xs font-medium text-purple-800">Database:</span>
+                                    <p className="text-sm text-purple-700">{crsData.technology_stack.database.join(", ")}</p>
+                                  </div>
+                                )}
+                                {crsData.technology_stack.other?.length > 0 && (
+                                  <div className="bg-gray-50 rounded p-2">
+                                    <span className="text-xs font-medium text-gray-800">Other:</span>
+                                    <p className="text-sm text-gray-700">{crsData.technology_stack.other.join(", ")}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Constraints Section */}
+                          <div className="border-t border-gray-200 pt-4 grid grid-cols-2 gap-4">
+                            {crsData.timeline_constraints && crsData.timeline_constraints !== "Not specified" && (
+                              <div className="bg-orange-50 rounded-lg p-3">
+                                <h4 className="text-xs font-semibold text-orange-800 mb-1">⏰ Timeline</h4>
+                                <p className="text-sm text-orange-700">{crsData.timeline_constraints}</p>
+                              </div>
+                            )}
+
+                            {crsData.budget_constraints && crsData.budget_constraints !== "Not specified" && (
+                              <div className="bg-emerald-50 rounded-lg p-3">
+                                <h4 className="text-xs font-semibold text-emerald-800 mb-1">💰 Budget</h4>
+                                <p className="text-sm text-emerald-700">{crsData.budget_constraints}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Technical Constraints */}
+                          {crsData.technical_constraints?.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">⚠️ Technical Constraints</h4>
+                              <ul className="list-disc list-inside space-y-1">
+                                {crsData.technical_constraints.map((constraint: string, idx: number) => (
+                                  <li key={idx} className="text-sm text-gray-600">{constraint}</li>
                                 ))}
                               </ul>
                             </div>
                           )}
 
-                          {crsData.target_users && (
+                          {/* Integrations */}
+                          {crsData.integrations?.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Target Users</h4>
-                              <p className="text-sm text-gray-600">{crsData.target_users}</p>
-                            </div>
-                          )}
-
-                          {crsData.timeline_constraints && (
-                            <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Timeline</h4>
-                              <p className="text-sm text-gray-600">{crsData.timeline_constraints}</p>
-                            </div>
-                          )}
-
-                          {crsData.budget_constraints && (
-                            <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Budget</h4>
-                              <p className="text-sm text-gray-600">{crsData.budget_constraints}</p>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">🔗 Integrations</h4>
+                              <ul className="list-disc list-inside space-y-1">
+                                {crsData.integrations.map((integration: string, idx: number) => (
+                                  <li key={idx} className="text-sm text-gray-600">{integration}</li>
+                                ))}
+                              </ul>
                             </div>
                           )}
 
                           {crsData.success_metrics && crsData.success_metrics.length > 0 && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-1">Success Metrics</h4>
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">📊 Success Metrics</h4>
                               <ul className="list-disc list-inside space-y-1">
                                 {crsData.success_metrics.map((metric: string, idx: number) => (
                                   <li key={idx} className="text-sm text-gray-600">{metric}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Assumptions & Risks */}
+                          {(crsData.assumptions?.length > 0 || crsData.risks?.length > 0) && (
+                            <div className="border-t border-gray-200 pt-4 grid grid-cols-2 gap-4">
+                              {crsData.assumptions?.length > 0 && (
+                                <div>
+                                  <h4 className="text-sm font-semibold text-gray-700 mb-1">📝 Assumptions</h4>
+                                  <ul className="list-disc list-inside space-y-1">
+                                    {crsData.assumptions.map((assumption: string, idx: number) => (
+                                      <li key={idx} className="text-sm text-gray-600">{assumption}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {crsData.risks?.length > 0 && (
+                                <div>
+                                  <h4 className="text-sm font-semibold text-red-700 mb-1">⚠️ Risks</h4>
+                                  <ul className="list-disc list-inside space-y-1">
+                                    {crsData.risks.map((risk: string, idx: number) => (
+                                      <li key={idx} className="text-sm text-red-600">{risk}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Out of Scope */}
+                          {crsData.out_of_scope?.length > 0 && (
+                            <div className="bg-gray-100 rounded-lg p-3">
+                              <h4 className="text-sm font-semibold text-gray-700 mb-1">🚫 Out of Scope</h4>
+                              <ul className="list-disc list-inside space-y-1">
+                                {crsData.out_of_scope.map((item: string, idx: number) => (
+                                  <li key={idx} className="text-sm text-gray-500">{item}</li>
                                 ))}
                               </ul>
                             </div>
