@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Bell, Check, Trash2, X } from 'lucide-react';
+import { Bell, Check, Trash2, X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { notificationAPI, Notification } from '@/lib/api-notifications';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
+import { showToast } from '@/components/notifications/NotificationToast';
 
 export function NotificationBell() {
   const router = useRouter();
@@ -47,8 +48,18 @@ export function NotificationBell() {
     try {
       await notificationAPI.markAsRead(notificationId);
       await fetchNotifications();
+      showToast({
+        type: 'success',
+        title: 'Marked as read',
+        message: 'Notification marked as read'
+      });
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to mark notification as read'
+      });
     }
   };
 
@@ -57,8 +68,18 @@ export function NotificationBell() {
       setLoading(true);
       await notificationAPI.markAllAsRead();
       await fetchNotifications();
+      showToast({
+        type: 'success',
+        title: 'Success',
+        message: 'All notifications marked as read'
+      });
     } catch (error) {
       console.error('Failed to mark all as read:', error);
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to mark all as read'
+      });
     } finally {
       setLoading(false);
     }
@@ -69,8 +90,18 @@ export function NotificationBell() {
     try {
       await notificationAPI.deleteNotification(notificationId);
       await fetchNotifications();
+      showToast({
+        type: 'success',
+        title: 'Deleted',
+        message: 'Notification deleted successfully'
+      });
     } catch (error) {
       console.error('Failed to delete notification:', error);
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to delete notification'
+      });
     }
   };
 
@@ -79,12 +110,21 @@ export function NotificationBell() {
     try {
       const result = await notificationAPI.acceptInvitationFromNotification(notificationId);
       await fetchNotifications();
+      showToast({
+        type: 'success',
+        title: 'Invitation accepted',
+        message: 'You have joined the team successfully'
+      });
       // Navigate to team dashboard
       router.push(`/teams/${result.team_id}/dashboard`);
       setIsOpen(false);
     } catch (error) {
       console.error('Failed to accept invitation:', error);
-      alert('Failed to accept invitation. Please try again.');
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to accept invitation. Please try again.'
+      });
     }
   };
 
@@ -120,6 +160,19 @@ export function NotificationBell() {
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
     
     return date.toLocaleDateString();
+  };
+
+  const getStatusIcon = (notification: Notification) => {
+    if (notification.metadata?.project_status === 'approved') {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+    if (notification.metadata?.project_status === 'pending') {
+      return <Clock className="h-4 w-4 text-yellow-500" />;
+    }
+    if (notification.metadata?.project_status === 'rejected') {
+      return <AlertCircle className="h-4 w-4 text-red-500" />;
+    }
+    return null;
   };
 
   return (
@@ -185,6 +238,11 @@ export function NotificationBell() {
                   }`}>
                     {notification.type === 'project_approval' ? '📋' : '👥'}
                   </div>
+                  {getStatusIcon(notification) && (
+                    <div className="shrink-0">
+                      {getStatusIcon(notification)}
+                    </div>
+                  )}
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
@@ -251,6 +309,22 @@ export function NotificationBell() {
             ))
           )}
         </div>
+
+        {/* View All Link */}
+        {notifications.length > 0 && (
+          <div className="p-3 border-t bg-gray-50">
+            <Button
+              variant="ghost"
+              className="w-full text-sm text-[#341BAB] hover:text-[#271080]"
+              onClick={() => {
+                router.push('/notifications');
+                setIsOpen(false);
+              }}
+            >
+              View All Notifications
+            </Button>
+          </div>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

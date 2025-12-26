@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/header/Header";
 import { Sidebar } from "@/components/sidebar/Sidebar";
+import { NotificationToastContainer } from "@/components/notifications/NotificationToast";
+import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -18,20 +20,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="h-screen flex flex-col">
-        {/* Fixed Header */}
-        <Header currentTeamId={currentTeamId} />
+        <NotificationProvider>
+          {/* Fixed Header */}
+          <Header currentTeamId={currentTeamId} />
 
-        {/* Content area with sidebar + main */}
-        <div className="flex flex-1 overflow-hidden">
-          {!hideSidebar && currentTeamId && (
-            <Sidebar currentTeamId={currentTeamId} />
-          )}
+          {/* Toast Notifications */}
+          <NotificationToastContainer />
 
-          {/* Main scrollable content */}
-          <main className="flex-1 overflow-y-auto p-6 flex justify-center">
-            <div className="w-full max-w-7xl">{children}</div>
-          </main>
-        </div>
+          {/* Content area with sidebar + main */}
+          <div className="flex flex-1 overflow-hidden">
+            {!hideSidebar && currentTeamId && (
+              <Sidebar currentTeamId={currentTeamId} />
+            )}
+
+            {/* Main scrollable content */}
+            <main className="flex-1 overflow-y-auto p-6 flex justify-center">
+              <div className="w-full max-w-7xl">{children}</div>
+            </main>
+          </div>
+        </NotificationProvider>
       </body>
     </html>
   );
