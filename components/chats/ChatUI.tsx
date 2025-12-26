@@ -12,6 +12,8 @@ import { ChatMessage, TypingIndicator, ChatMessageData } from "@/components/chat
 import { getAccessToken } from "@/lib/api";
 import { CRSOut, fetchLatestCRS, updateCRSStatus } from "@/lib/api-crs";
 import { CRSStatusBadge } from "@/components/shared/CRSStatusBadge";
+import { ExportButton } from "@/components/shared/ExportButton";
+import { CRSExportButton } from "@/components/shared/CRSExportButton";
 
 interface ChatUIProps {
   chat: ChatDetail;
@@ -318,6 +320,24 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     }
   };
 
+  const generateChatTranscript = (): string => {
+    const lines: string[] = [];
+    lines.push(`# Chat Transcript: ${chat.name}`);
+    lines.push(`**Project Chat ID:** ${chat.id}`);
+    lines.push(`**Started:** ${new Date(chat.started_at).toLocaleString()}`);
+    lines.push("");
+    
+    for (const msg of messages) {
+      const senderLabel = msg.sender_type === "ai" ? "🤖 AI" : msg.sender_type === "ba" ? "👤 BA" : "👤 Client";
+      const timestamp = new Date(msg.timestamp).toLocaleTimeString();
+      lines.push(`**${senderLabel}** [${timestamp}]`);
+      lines.push(msg.content);
+      lines.push("");
+    }
+    
+    return lines.join("\n");
+  };
+
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Chat Header */}
@@ -369,6 +389,11 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
                 : "Disconnected"}
             </span>
           </div>
+          <ExportButton
+            projectId={chat.project_id}
+            content={generateChatTranscript()}
+            filename={`chat-${chat.id}-${chat.name.replace(/\s+/g, "-").toLowerCase()}`}
+          />
           <Button onClick={() => setOpenGenerate(true)} variant="primary">
             Generate CRS document
           </Button>
@@ -767,6 +792,12 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
 
           <DialogFooter className="mt-4 flex gap-2">
             <Button onClick={() => setOpenDraft(false)} variant="outline">Close</Button>
+            {latestCRS && (
+              <CRSExportButton
+                crsId={latestCRS.id}
+                version={latestCRS.version}
+              />
+            )}
             {latestCRS && latestCRS.status === "draft" && (
               <Button onClick={handleSendToBA} variant="primary">Submit for Review</Button>
             )}

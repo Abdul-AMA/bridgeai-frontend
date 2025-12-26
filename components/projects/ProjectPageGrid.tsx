@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CRSOut, fetchLatestCRS } from "@/lib/api-crs";
 import { CRSStatusBadge } from "@/components/shared/CRSStatusBadge";
+import { CRSExportButton } from "@/components/shared/CRSExportButton";
 
 interface ProjectPageGridProps {
   projectId: number;
@@ -249,7 +250,10 @@ function DashboardTab({ userRole, onStartChat, projectId }: { userRole: "BA" | "
                       Created: {new Date(latestCRS.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <CRSStatusBadge status={latestCRS.status} />
+                  <div className="flex items-center gap-2">
+                    <CRSStatusBadge status={latestCRS.status} />
+                    <CRSExportButton crsId={latestCRS.id} version={latestCRS.version} />
+                  </div>
                 </div>
               </div>
             )}

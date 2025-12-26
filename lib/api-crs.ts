@@ -2,7 +2,7 @@
  * API utilities for CRS (Client Requirements Specification) operations
  */
 
-import { apiCall } from "./api";
+import { apiCall, getAccessToken } from "./api";
 
 export type CRSStatus = "draft" | "under_review" | "approved" | "rejected";
 
@@ -61,3 +61,31 @@ export async function updateCRSStatus(crsId: number, status: CRSStatus): Promise
     body: JSON.stringify({ status }),
   });
 }
+
+/**
+ * Export CRS document as PDF or Markdown
+ */
+export async function exportCRS(crsId: number, format: "pdf" | "markdown" = "pdf"): Promise<Blob> {
+  const token = getAccessToken();
+
+  if (!token) {
+    throw new Error("No authentication token found. Please log in.");
+  }
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/api/crs/${crsId}/export?format=${format}`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Export failed");
+  }
+
+  return response.blob();}
