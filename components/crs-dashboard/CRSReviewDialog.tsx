@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CRSOut, CRSStatus, updateCRSStatus } from "@/lib/api-crs";
 import { CRSStatusBadge } from "@/components/shared/CRSStatusBadge";
+import { CRSContentDisplay } from "@/components/shared/CRSContentDisplay";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
@@ -163,89 +164,4 @@ export function CRSReviewDialog({ crs, open, onClose, onStatusUpdate }: CRSRevie
       </DialogContent>
     </Dialog>
   );
-}
-
-// Component to display CRS content (same as in ChatUI)
-function CRSContentDisplay({ content }: { content: string }) {
-  try {
-    const crsData = JSON.parse(content);
-    return (
-      <>
-        {crsData.project_title && (
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">{crsData.project_title}</h3>
-          </div>
-        )}
-
-        {crsData.project_description && (
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">Project Description</h4>
-            <p className="text-sm text-gray-600">{crsData.project_description}</p>
-          </div>
-        )}
-
-        {crsData.project_objectives && crsData.project_objectives.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-1">Objectives</h4>
-            <ul className="list-disc list-inside space-y-1">
-              {crsData.project_objectives.map((obj: string, idx: number) => (
-                <li key={idx} className="text-sm text-gray-600">{obj}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {crsData.functional_requirements && crsData.functional_requirements.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">Functional Requirements</h4>
-            <div className="space-y-3">
-              {crsData.functional_requirements.map((req: any, idx: number) => {
-                if (typeof req === "object" && req !== null) {
-                  return (
-                    <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-gray-900">
-                          {req.id && <span className="text-[#341bab] mr-2">{req.id}</span>}
-                          {req.title || "Requirement"}
-                        </span>
-                        {req.priority && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            req.priority === "high" ? "bg-red-100 text-red-700" :
-                            req.priority === "medium" ? "bg-yellow-100 text-yellow-700" :
-                            "bg-green-100 text-green-700"
-                          }`}>
-                            {req.priority}
-                          </span>
-                        )}
-                      </div>
-                      {req.description && (
-                        <p className="text-sm text-gray-600">{req.description}</p>
-                      )}
-                    </div>
-                  );
-                }
-                if (typeof req === "string") {
-                  return (
-                    <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                      <p className="text-sm text-gray-600">{req.trim()}</p>
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Additional sections can be added here similar to ChatUI */}
-      </>
-    );
-  } catch (e) {
-    return (
-      <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">Document Content</h4>
-        <div className="text-sm text-gray-600 whitespace-pre-wrap">{content}</div>
-      </div>
-    );
-  }
 }
