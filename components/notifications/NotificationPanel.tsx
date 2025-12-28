@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from './StatusBadge';
 import { showToast } from './NotificationToast';
 
-type FilterType = 'all' | 'unread' | 'project' | 'team';
+type FilterType = 'all' | 'unread' | 'project' | 'team' | 'crs';
 
 export function NotificationPanel() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -17,16 +17,22 @@ export function NotificationPanel() {
 
   const fetchNotifications = async () => {
     try {
+      // Check if user is authenticated before fetching
+      const token = typeof window !== 'undefined' ? document.cookie.split(';').find(c => c.trim().startsWith('token=')) : null;
+      if (!token) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setLoading(false);
+        return;
+      }
+
       const data = await notificationAPI.getNotifications();
       setNotifications(data.notifications || []);
       setUnreadCount(data.unread_count || 0);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-      showToast({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to load notifications'
-      });
+      // Silently handle errors
+      setNotifications([]);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
     }
@@ -42,6 +48,7 @@ export function NotificationPanel() {
     if (filter === 'unread') return !n.is_read;
     if (filter === 'project') return n.type === 'project_approval';
     if (filter === 'team') return n.type === 'team_invitation';
+    if (filter === 'crs') return n.type.startsWith('crs_');
     return true;
   });
 
@@ -124,7 +131,7 @@ export function NotificationPanel() {
       </div>
 
       <div className="flex gap-2 mb-6">
-        {(['all', 'unread', 'project', 'team'] as FilterType[]).map(f => (
+        {(['all', 'unread', 'project', 'team', 'crs'] as FilterType[]).map(f => (
           <Button
             key={f}
             variant={filter === f ? 'default' : 'outline'}
@@ -132,7 +139,7 @@ export function NotificationPanel() {
             onClick={() => setFilter(f)}
             className={filter === f ? 'bg-[#341BAB] hover:bg-[#271080]' : ''}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === 'crs' ? 'CRS' : f.charAt(0).toUpperCase() + f.slice(1)}
           </Button>
         ))}
       </div>

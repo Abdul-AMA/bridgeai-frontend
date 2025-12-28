@@ -3,7 +3,7 @@ import { apiCall } from './api';
 export interface Notification {
   id: number;
   user_id: number;
-  type: 'project_approval' | 'team_invitation';
+  type: 'project_approval' | 'team_invitation' | 'crs_created' | 'crs_updated' | 'crs_status_changed' | 'crs_comment_added' | 'crs_approved' | 'crs_rejected' | 'crs_review_assigned';
   reference_id: number;
   title: string;
   message: string;
@@ -21,6 +21,9 @@ export interface Notification {
     invitation_token?: string;
     invitation_role?: string;
     action_type?: 'invitation_received' | 'invitation_accepted';
+    // For CRS notifications
+    crs_id?: number;
+    status?: string;
   };
 }
 

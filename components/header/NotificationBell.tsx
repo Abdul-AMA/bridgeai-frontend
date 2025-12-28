@@ -21,15 +21,19 @@ export function NotificationBell() {
 
   const fetchNotifications = async () => {
     try {
-      console.log('Fetching notifications from /api/notifications...');
+      // Check if user is authenticated before fetching
+      const token = typeof window !== 'undefined' ? document.cookie.split(';').find(c => c.trim().startsWith('token=')) : null;
+      if (!token) {
+        setNotifications([]);
+        setUnreadCount(0);
+        return;
+      }
+
       const data = await notificationAPI.getNotifications();
-      console.log('Notifications fetched successfully:', data);
       setNotifications(data.notifications || []);
       setUnreadCount(data.unread_count || 0);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-      // Set empty state on error
+      // Silently fail - don't log errors to avoid console spam
       setNotifications([]);
       setUnreadCount(0);
     }
@@ -144,6 +148,17 @@ export function NotificationBell() {
       router.push(`/projects/${notification.metadata.project_id}`);
     } else if (notification.type === 'team_invitation' && notification.metadata?.team_id) {
       router.push(`/teams/${notification.metadata.team_id}/dashboard`);
+    } else if (
+      (notification.type === 'crs_created' || 
+       notification.type === 'crs_updated' || 
+       notification.type === 'crs_status_changed' ||
+       notification.type === 'crs_comment_added' ||
+       notification.type === 'crs_approved' ||
+       notification.type === 'crs_rejected' ||
+       notification.type === 'crs_review_assigned') && 
+      notification.metadata?.project_id
+    ) {
+      router.push(`/teams/${notification.metadata.project_id}/projects`);
     }
 
     setIsOpen(false);
@@ -242,9 +257,11 @@ export function NotificationBell() {
                   <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                     notification.type === 'project_approval' 
                       ? 'bg-purple-100 text-purple-600' 
+                      : notification.type.startsWith('crs_')
+                      ? 'bg-green-100 text-green-600'
                       : 'bg-blue-100 text-blue-600'
                   }`}>
-                    {notification.type === 'project_approval' ? '📋' : '👥'}
+                    {notification.type === 'project_approval' ? '📋' : notification.type.startsWith('crs_') ? '📄' : '👥'}
                   </div>
                   {getStatusIcon(notification) && (
                     <div className="shrink-0">
@@ -290,6 +307,12 @@ export function NotificationBell() {
                         )}
                         {notification.metadata.invitation_role && (
                           <p><strong>Role:</strong> {notification.metadata.invitation_role}</p>
+                        )}
+                        {notification.metadata.crs_id && (
+                          <p><strong>CRS ID:</strong> #{notification.metadata.crs_id}</p>
+                        )}
+                        {notification.metadata.status && (
+                          <p><strong>Status:</strong> {notification.metadata.status}</p>
                         )}
                       </div>
                     )}

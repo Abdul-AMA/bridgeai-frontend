@@ -14,11 +14,20 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
+      // Check if user is authenticated before fetching
+      const token = typeof window !== 'undefined' ? document.cookie.split(';').find(c => c.trim().startsWith('token=')) : null;
+      if (!token) {
+        setNotifications([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const data = await notificationAPI.getNotifications(filter === 'unread');
       setNotifications(data.notifications || []);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      // Silently handle errors
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
