@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ChatDetail, ChatMessage as ChatMessageType } from "@/lib/api-chats";
 import { ChatMessage, TypingIndicator, ChatMessageData } from "@/components/chats/ChatMessage";
 import { getAccessToken } from "@/lib/api";
-import { CRSOut, fetchLatestCRS, updateCRSStatus } from "@/lib/api-crs";
+import { CRSOut, fetchCRSForSession, updateCRSStatus } from "@/lib/api-crs";
 import { CRSStatusBadge } from "@/components/shared/CRSStatusBadge";
 import { CRSContentDisplay } from "@/components/shared/CRSContentDisplay";
 import { ExportButton } from "@/components/shared/ExportButton";
@@ -258,32 +258,33 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
   // Determine available actions based on CRS status
   const canGenerateCRS = !latestCRS || latestCRS.status === 'draft' || latestCRS.status === 'rejected';
   const canSubmitCRS = latestCRS?.status === 'draft';
-  const canChatFreely = !latestCRS || latestCRS.status === 'draft' || latestCRS.status === 'rejected';
+  // Users can always chat - CRS status doesn't block conversation
+  const canChatFreely = true;
   const isUnderReview = latestCRS?.status === 'under_review';
   const isApproved = latestCRS?.status === 'approved';
   const isRejected = latestCRS?.status === 'rejected';
 
   // Load CRS on mount to determine current status
   useEffect(() => {
-    if (chat.project_id) {
+    if (chat.id) {
       loadCRS();
     }
-  }, [chat.project_id]);
+  }, [chat.id]);
 
-  // Load CRS when opening the draft dialog
+  // Reload CRS when opening the draft dialog to get latest data
   useEffect(() => {
-    if (openDraft && chat.project_id) {
+    if (openDraft && chat.id) {
       loadCRS();
     }
-  }, [openDraft, chat.project_id]);
+  }, [openDraft, chat.id]);
 
   const loadCRS = async () => {
-    if (!chat.project_id) return null;
+    if (!chat.id) return null;
     
     try {
       setCrsLoading(true);
       setCrsError(null);
-      const crs = await fetchLatestCRS(chat.project_id);
+      const crs = await fetchCRSForSession(chat.id);
       setLatestCRS(crs);
       return crs;
     } catch (err) {
@@ -330,7 +331,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       const updatedCRS = await updateCRSStatus(latestCRS.id, "under_review");
       setLatestCRS(updatedCRS);
       setOpenDraft(false);
-      alert("CRS submitted for BA review successfully!");
+      alert("✅ CRS submitted successfully! Your document is now under review by the Business Analyst. You can continue chatting while waiting for the review.");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to submit CRS");
     }
@@ -447,12 +448,12 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
         {/* Status Messages */}
         {isUnderReview && (
           <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
-            ⏳ Your CRS is currently under review by the Business Analyst. Chat is disabled until review is complete.
+            ⏳ Your CRS is currently under review by the Business Analyst. You can continue chatting to discuss additional details.
           </div>
         )}
         {isApproved && (
           <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
-            ✅ Congratulations! Your CRS has been approved. This is your final requirements document.
+            ✅ Your CRS has been approved! You can continue chatting for follow-up questions or new features.
           </div>
         )}
         {isRejected && latestCRS?.rejection_reason && (
@@ -465,21 +466,17 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
         
         <div className="flex gap-3">
           <Input
-            placeholder={
-              !canChatFreely 
-                ? (isUnderReview ? "Chat disabled while CRS is under review" : "CRS approved - chat completed")
-                : "Type your message..."
-            }
+            placeholder="Type your message..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && canChatFreely && handleSend()}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
             className="flex-1"
-            disabled={connectionState !== "open" || !canChatFreely}
+            disabled={connectionState !== "open"}
           />
           <Button 
             onClick={handleSend} 
             variant="primary" 
-            disabled={isSending || connectionState !== "open" || !canChatFreely}
+            disabled={isSending || connectionState !== "open"}
           >
             {isSending ? "Sending..." : "Send"}
           </Button>

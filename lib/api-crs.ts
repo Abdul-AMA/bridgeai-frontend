@@ -39,6 +39,18 @@ export async function fetchLatestCRS(projectId: number): Promise<CRSOut> {
 }
 
 /**
+ * Fetch the CRS document linked to a specific chat session
+ */
+export async function fetchCRSForSession(sessionId: number): Promise<CRSOut | null> {
+  try {
+    return await apiCall<CRSOut>(`/api/crs/session/${sessionId}`);
+  } catch (error) {
+    // Return null if no CRS exists for this session
+    return null;
+  }
+}
+
+/**
  * Fetch all CRS versions for a project
  */
 export async function fetchCRSVersions(projectId: number): Promise<CRSOut[]> {

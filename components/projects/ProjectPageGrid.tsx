@@ -280,6 +280,7 @@ function ChatsTab({ projectId, createChatTrigger }: { projectId: number; createC
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<ChatSummary | null>(null);
+  const [latestCRS, setLatestCRS] = useState<CRSOut | null>(null);
   const router = useRouter();
 
   const normalizeChat = (chat: ChatSummary | ChatDetail): ChatSummary => ({
@@ -296,8 +297,15 @@ function ChatsTab({ projectId, createChatTrigger }: { projectId: number; createC
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchProjectChats(projectId);
-      setItems(data.map(normalizeChat));
+      const [chatsData, crsData] = await Promise.all([
+        fetchProjectChats(projectId),
+        fetchLatestCRS(projectId).catch(() => null) // CRS might not exist yet
+      ]);
+      setLatestCRS(crsData);
+      
+      // Show all chats for the project - don't filter by CRS ID
+      // Users should see all their chats regardless of CRS status
+      setItems(chatsData.map(normalizeChat));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load chats");
     } finally {
@@ -343,7 +351,11 @@ function ChatsTab({ projectId, createChatTrigger }: { projectId: number; createC
       setActionError(null);
 
       if (modalMode === "create") {
-        const created = await createProjectChat(projectId, { name: trimmed });
+        // Don't link to CRS on creation - each chat will get its own CRS when the AI generates it
+        const created = await createProjectChat(projectId, { 
+          name: trimmed,
+          crs_document_id: null
+        });
         setItems((prev) => [normalizeChat(created), ...prev]);
         setSuccessMessage("Chat created successfully");
       } else if (selectedChat) {
