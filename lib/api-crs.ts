@@ -15,6 +15,8 @@ export interface CRSOut {
   summary_points: string[];
   created_by: number | null;
   approved_by: number | null;
+  rejection_reason: string | null;
+  reviewed_at: string | null;
   created_at: string;
 }
 
@@ -26,6 +28,7 @@ export interface CRSCreate {
 
 export interface CRSStatusUpdate {
   status: CRSStatus;
+  rejection_reason?: string;
 }
 
 /**
@@ -36,10 +39,36 @@ export async function fetchLatestCRS(projectId: number): Promise<CRSOut> {
 }
 
 /**
+ * Fetch the CRS document linked to a specific chat session
+ */
+export async function fetchCRSForSession(sessionId: number): Promise<CRSOut | null> {
+  try {
+    return await apiCall<CRSOut>(`/api/crs/session/${sessionId}`);
+  } catch (error) {
+    // Return null if no CRS exists for this session
+    return null;
+  }
+}
+
+/**
  * Fetch all CRS versions for a project
  */
 export async function fetchCRSVersions(projectId: number): Promise<CRSOut[]> {
   return apiCall<CRSOut[]>(`/api/crs/versions?project_id=${projectId}`);
+}
+
+/**
+ * Fetch all CRS documents for BA review (optionally filtered by team and status)
+ */
+export async function fetchCRSForReview(teamId?: number, status?: CRSStatus): Promise<CRSOut[]> {
+  const params = new URLSearchParams();
+  if (teamId) params.append("team_id", teamId.toString());
+  if (status) params.append("status", status);
+  
+  const url = params.toString() 
+    ? `/api/crs/review?${params.toString()}`
+    : `/api/crs/review`;
+  return apiCall<CRSOut[]>(url);
 }
 
 /**
@@ -55,10 +84,14 @@ export async function createCRS(payload: CRSCreate): Promise<CRSOut> {
 /**
  * Update CRS status (approval workflow)
  */
-export async function updateCRSStatus(crsId: number, status: CRSStatus): Promise<CRSOut> {
+export async function updateCRSStatus(
+  crsId: number, 
+  status: CRSStatus, 
+  rejectionReason?: string
+): Promise<CRSOut> {
   return apiCall<CRSOut>(`/api/crs/${crsId}/status`, {
     method: "PUT",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, rejection_reason: rejectionReason }),
   });
 }
 
