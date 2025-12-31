@@ -354,7 +354,7 @@ function ChatsTab({ projectId, createChatTrigger }: { projectId: number; createC
         // Don't link to CRS on creation - each chat will get its own CRS when the AI generates it
         const created = await createProjectChat(projectId, { 
           name: trimmed,
-          crs_document_id: null
+          crs_document_id: undefined
         });
         setItems((prev) => [normalizeChat(created), ...prev]);
         setSuccessMessage("Chat created successfully");
