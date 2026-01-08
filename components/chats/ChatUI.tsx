@@ -218,6 +218,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     };
 
     setMessages((prev) => [...prev, pendingLocal]);
+    setInput("");
     
     // Reset textarea height
     if (textareaRef.current) {
