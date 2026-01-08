@@ -46,9 +46,8 @@ export function TeamSettingsGrid({
   onTeamUpdate,
 }: TeamSettingsGridProps) {
   const [pendingInvites, setPendingInvites] = useState<InvitationResponse[]>([]);
-  const [loadingInvites, setLoadingInvites] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Member[]>(initialMembers || []);
-  const [loadingMembers, setLoadingMembers] = useState(true);
   const [updatingName, setUpdatingName] = useState(teamName);
   const [updatingDescription, setUpdatingDescription] = useState(teamDescription || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -57,18 +56,29 @@ export function TeamSettingsGrid({
   const [newRole, setNewRole] = useState<string>('');
 
   useEffect(() => {
-    fetchPendingInvites();
-    fetchTeamMembers();
+    loadAllData();
   }, [teamId]);
+
+  const loadAllData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchPendingInvites(false), // Pass false to avoid setting individual loading state if not needed, or just let it update data
+        fetchTeamMembers(false)
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setUpdatingName(teamName);
     setUpdatingDescription(teamDescription || '');
   }, [teamName, teamDescription]);
 
-  const fetchPendingInvites = async () => {
+  const fetchPendingInvites = async (updateLoading = true) => {
     try {
-      setLoadingInvites(true);
+      if (updateLoading) setLoading(true);
       const invites = await invitationAPI.getTeamInvitations(teamId);
       setPendingInvites(invites.filter(invite => invite.status === 'pending'));
     } catch (error) {
@@ -76,20 +86,20 @@ export function TeamSettingsGrid({
       console.log('Team invitations endpoint not available yet');
       setPendingInvites([]);
     } finally {
-      setLoadingInvites(false);
+      if (updateLoading) setLoading(false);
     }
   };
 
-  const fetchTeamMembers = async () => {
+  const fetchTeamMembers = async (updateLoading = true) => {
     try {
-      setLoadingMembers(true);
+      if (updateLoading) setLoading(true);
       const data = await apiCall<Member[]>(`/api/teams/${teamId}/members`);
       setMembers(data);
     } catch (error) {
       console.error('Error fetching team members:', error);
       setMembers([]);
     } finally {
-      setLoadingMembers(false);
+      if (updateLoading) setLoading(false);
     }
   };
 
@@ -124,9 +134,9 @@ export function TeamSettingsGrid({
       onTeamUpdate?.();
     } catch (error) {
       console.error('Error updating team:', error);
-      setFlashMessage({ 
-        type: 'error', 
-        message: error instanceof Error ? error.message : 'Failed to update team. Please try again.' 
+      setFlashMessage({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update team. Please try again.'
       });
       setTimeout(() => setFlashMessage(null), 5000);
     } finally {
@@ -177,18 +187,18 @@ export function TeamSettingsGrid({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole })
       });
-      
+
       setFlashMessage({ type: 'success', message: 'Member role updated successfully!' });
       setTimeout(() => setFlashMessage(null), 3000);
-      
+
       fetchTeamMembers();
       setChangingRoleMemberId(null);
       setNewRole('');
     } catch (error) {
       console.error('Error changing role:', error);
-      setFlashMessage({ 
-        type: 'error', 
-        message: error instanceof Error ? error.message : 'Failed to change member role' 
+      setFlashMessage({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to change member role'
       });
       setTimeout(() => setFlashMessage(null), 5000);
     }
@@ -203,16 +213,16 @@ export function TeamSettingsGrid({
       await apiCall(`/api/teams/${teamId}/members/${memberId}`, {
         method: 'DELETE'
       });
-      
+
       setFlashMessage({ type: 'success', message: 'Member removed successfully!' });
       setTimeout(() => setFlashMessage(null), 3000);
-      
+
       fetchTeamMembers();
     } catch (error) {
       console.error('Error removing member:', error);
-      setFlashMessage({ 
-        type: 'error', 
-        message: error instanceof Error ? error.message : 'Failed to remove member' 
+      setFlashMessage({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to remove member'
       });
       setTimeout(() => setFlashMessage(null), 5000);
     }
@@ -232,13 +242,12 @@ export function TeamSettingsGrid({
       {/* Flash Message */}
       {flashMessage && (
         <div
-          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-top-2 ${
-            flashMessage.type === 'success'
-              ? 'bg-green-500 text-white'
-              : flashMessage.type === 'info'
+          className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-top-2 ${flashMessage.type === 'success'
+            ? 'bg-green-500 text-white'
+            : flashMessage.type === 'info'
               ? 'bg-blue-500 text-white'
               : 'bg-red-500 text-white'
-          }`}
+            }`}
         >
           {flashMessage.type === 'success' && (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,9 +272,9 @@ export function TeamSettingsGrid({
       <section className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold mb-4">Team Info</h2>
-          <Button 
-            variant="primary" 
-            size="sm" 
+          <Button
+            variant="primary"
+            size="sm"
             className="flex items-center gap-2"
             onClick={handleSaveChanges}
             disabled={isSaving}
@@ -310,7 +319,7 @@ export function TeamSettingsGrid({
           <h3 className="text-sm font-medium text-gray-500 mb-2">
             Members ({members.length})
           </h3>
-          {loadingMembers ? (
+          {loading ? (
             <div className="flex justify-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#341BAB]"></div>
             </div>
@@ -324,7 +333,7 @@ export function TeamSettingsGrid({
                 const displayName = member.user.full_name || member.user.username || member.user.email.split('@')[0];
                 const displayEmail = member.user.email;
                 const initial = displayName.charAt(0).toUpperCase();
-                
+
                 return (
                   <div
                     key={member.id}
@@ -353,7 +362,7 @@ export function TeamSettingsGrid({
                           <DropdownMenuItem onClick={() => handleChangeRole(member.id, member.role)}>
                             Change Role
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-red-600"
                             onClick={() => handleRemoveMember(member.id, displayName)}
                           >
@@ -376,14 +385,14 @@ export function TeamSettingsGrid({
             <h3 className="text-sm font-medium text-gray-500">
               Pending Invitations ({pendingInvites.length})
             </h3>
-            {loadingInvites && (
+            {loading && (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
             )}
           </div>
-          
+
           {pendingInvites.length === 0 ? (
             <div className="text-center py-4 text-gray-500 text-sm">
-              {loadingInvites ? "Loading invitations..." : "No pending invitations"}
+              {loading ? "Loading invitations..." : "No pending invitations"}
             </div>
           ) : (
             <div className="space-y-3">
@@ -421,7 +430,7 @@ export function TeamSettingsGrid({
                           <Mail className="w-4 h-4 mr-2" />
                           Resend Invitation
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-red-600"
                           onClick={() => handleCancelInvite(invite.id)}
                         >
