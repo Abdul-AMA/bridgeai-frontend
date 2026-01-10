@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, WifiOff } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ChatDetail, ChatMessage as ChatMessageType } from "@/lib/api-chats";
 import { ChatMessage, TypingIndicator, ChatMessageData } from "@/components/chats/ChatMessage";
@@ -15,6 +15,7 @@ import { CRSStatusBadge } from "@/components/shared/CRSStatusBadge";
 import { CRSContentDisplay } from "@/components/shared/CRSContentDisplay";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { CRSExportButton } from "@/components/shared/CRSExportButton";
+import { CommentsSection } from "@/components/comments/CommentsSection";
 
 interface ChatUIProps {
   chat: ChatDetail;
@@ -37,6 +38,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
   const [isAiTyping, setIsAiTyping] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const router = useRouter();
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -132,7 +134,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
           console.warn("[ChatUI] Invalid message format, missing id or content:", data);
           return;
         }
-        
+
         const incoming: LocalChatMessage = {
           id: data.id,
           session_id: data.session_id ?? chat.id,
@@ -217,6 +219,11 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
 
     setMessages((prev) => [...prev, pendingLocal]);
     setInput("");
+    
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
 
     if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
       setWsError("Not connected. Please wait for the chat to reconnect.");
@@ -241,6 +248,23 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       );
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    
+    // Auto-resize textarea
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
@@ -280,7 +304,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
 
   const loadCRS = async () => {
     if (!chat.id) return null;
-    
+
     try {
       setCrsLoading(true);
       setCrsError(null);
@@ -343,7 +367,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     lines.push(`**Project Chat ID:** ${chat.id}`);
     lines.push(`**Started:** ${new Date(chat.started_at).toLocaleString()}`);
     lines.push("");
-    
+
     for (const msg of messages) {
       const senderLabel = msg.sender_type === "ai" ? "🤖 AI" : msg.sender_type === "ba" ? "👤 BA" : "👤 Client";
       const timestamp = new Date(msg.timestamp).toLocaleTimeString();
@@ -351,7 +375,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       lines.push(msg.content);
       lines.push("");
     }
-    
+
     return lines.join("\n");
   };
 
@@ -388,13 +412,12 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
         </div>
         <div className="flex items-center gap-3">
           <div
-            className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-              connectionState === "open"
-                ? "bg-green-50 text-green-700"
-                : connectionState === "connecting"
+            className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${connectionState === "open"
+              ? "bg-green-50 text-green-700"
+              : connectionState === "connecting"
                 ? "bg-yellow-50 text-yellow-700"
                 : "bg-red-50 text-red-700"
-            }`}
+              }`}
           >
             {connectionState === "connecting" && <Loader2 className="h-3 w-3 animate-spin" />}
             {connectionState !== "open" && <WifiOff className="h-3 w-3" />}
@@ -402,8 +425,8 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
               {connectionState === "open"
                 ? "Connected"
                 : connectionState === "connecting"
-                ? "Connecting..."
-                : "Disconnected"}
+                  ? "Connecting..."
+                  : "Disconnected"}
             </span>
           </div>
           <ExportButton
@@ -443,40 +466,38 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-6 py-4 border-t border-gray-200 bg-white">
-        {/* Status Messages */}
+      {/* Input Area */}
+      <div className="p-4 border-t border-gray-200 bg-white">
         {isUnderReview && (
           <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
-            ⏳ Your CRS is currently under review by the Business Analyst. You can continue chatting to discuss additional details.
-          </div>
-        )}
-        {isApproved && (
-          <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
-            ✅ Your CRS has been approved! You can continue chatting for follow-up questions or new features.
+            <div className="font-semibold mb-1">CRS Under Review</div>
+            <div className="text-xs">Your CRS is currently being reviewed by the BA. You can continue chatting while waiting for follow-up questions or new features.</div>
           </div>
         )}
         {isRejected && latestCRS?.rejection_reason && (
           <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
-            <div className="font-semibold mb-1">❌ Your CRS was rejected</div>
+            <div className="font-semibold mb-1">Your CRS was rejected</div>
             <div className="text-xs">Feedback: {latestCRS.rejection_reason}</div>
             <div className="text-xs mt-2">Please review the feedback and regenerate an improved version.</div>
           </div>
         )}
-        
-        <div className="flex gap-3">
-          <Input
-            placeholder="Type your message..."
+
+        <div className="flex gap-3 items-end">
+          <Textarea
+            ref={textareaRef}
+            placeholder="Type your message... (Shift+Enter for new line)"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            className="flex-1"
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            className="flex-1 min-h-[44px] max-h-[200px] resize-none overflow-y-auto"
             disabled={connectionState !== "open"}
+            rows={1}
           />
-          <Button 
-            onClick={handleSend} 
-            variant="primary" 
+          <Button
+            onClick={handleSend}
+            variant="primary"
             disabled={isSending || connectionState !== "open"}
+            className="h-[44px]"
           >
             {isSending ? "Sending..." : "Send"}
           </Button>
@@ -508,95 +529,114 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
 
       {/* CRS Draft Dialog */}
       <Dialog open={openDraft} onOpenChange={setOpenDraft}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>CRS Document</DialogTitle>
-            <DialogDescription>
-              Review the Customer Requirements Specification document.
+        <DialogContent className="max-w-[95vw] lg:max-w-7xl h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-white">
+            <DialogTitle className="flex items-center justify-between">
+              <span className="text-xl">CRS Document</span>
+              {latestCRS && <CRSStatusBadge status={latestCRS.status} />}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Review the Client Requirements Specification document.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-2">
-            {crsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                <span className="ml-2 text-sm text-gray-500">Loading CRS...</span>
-              </div>
-            ) : crsError || !latestCRS ? (
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  {crsError || "No CRS document found for this project."}
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Header Info */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 bg-gray-100 rounded-lg">
-                    <p className="text-xs font-semibold text-gray-600">Version</p>
-                    <p className="text-xl font-bold text-black">{latestCRS.version}</p>
-                  </div>
-                  <div className="p-3 bg-gray-100 rounded-lg">
-                    <p className="text-xs font-semibold text-gray-600 mb-1">Status</p>
-                    <CRSStatusBadge status={latestCRS.status} />
-                  </div>
-                  <div className="p-3 bg-gray-100 rounded-lg">
-                    <p className="text-xs font-semibold text-gray-600">Created</p>
-                    <p className="text-sm font-medium text-black mt-1">
-                      {new Date(latestCRS.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left Panel: Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/30">
+              {crsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  <span className="ml-2 text-base text-gray-500">Loading document...</span>
                 </div>
-
-                {/* Summary Points */}
-                {latestCRS.summary_points && latestCRS.summary_points.length > 0 && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-2">Key Points</h3>
-                    <ul className="list-disc list-inside space-y-1">
-                      {latestCRS.summary_points.map((point, idx) => (
-                        <li key={idx} className="text-sm text-gray-700">{point}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Structured CRS Content */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
-                  <CRSContentDisplay content={latestCRS.content} />
+              ) : crsError || !latestCRS ? (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    {crsError || "No CRS document found for this project."}
+                  </p>
                 </div>
-              </>
+              ) : (
+                <>
+                  {/* Header Info */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Version</p>
+                      <p className="text-2xl font-bold text-gray-900 mt-1">v{latestCRS.version}</p>
+                    </div>
+                    <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Created</p>
+                      <p className="text-sm font-medium text-gray-900 mt-2">
+                        {new Date(latestCRS.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary Points */}
+                  {latestCRS.summary_points && latestCRS.summary_points.length > 0 && (
+                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 shadow-sm">
+                      <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        Key Points
+                      </h3>
+                      <ul className="grid gap-2">
+                        {latestCRS.summary_points.map((point, idx) => (
+                          <li key={idx} className="text-sm text-blue-900/80 pl-2 border-l-2 border-blue-200">
+                            {point}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Structured CRS Content */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm min-h-[400px]">
+                    <CRSContentDisplay content={latestCRS.content} />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Right Panel: Comments */}
+            {latestCRS && (
+              <div className="w-[350px] lg:w-[400px] border-l border-gray-200 bg-white shadow-[rgba(0,0,0,0.05)_0px_0px_20px_-5px_inset]">
+                <CommentsSection crsId={latestCRS.id} className="h-full border-none rounded-none shadow-none" />
+              </div>
             )}
           </div>
 
-          <DialogFooter className="mt-4 flex gap-2">
-            <Button onClick={() => setOpenDraft(false)} variant="outline">Close</Button>
-            {latestCRS && (
-              <CRSExportButton
-                crsId={latestCRS.id}
-                version={latestCRS.version}
-              />
-            )}
-            {latestCRS && latestCRS.status === "draft" && (
-              <Button onClick={handleSendToBA} variant="primary">Submit for Review</Button>
-            )}
-            {latestCRS && latestCRS.status === "rejected" && (
-              <Button onClick={() => {
-                setOpenDraft(false);
-                setOpenGenerate(true);
-              }} variant="primary" className="bg-orange-600 hover:bg-orange-700">
-                Regenerate CRS
-              </Button>
-            )}
-            {latestCRS && latestCRS.status === "approved" && (
-              <span className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md border border-green-200">
-                ✅ Final Approved Version
-              </span>
-            )}
-            {latestCRS && latestCRS.status === "under_review" && (
-              <span className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md border border-blue-200">
-                ⏳ Pending BA Review
-              </span>
-            )}
+          <DialogFooter className="flex-shrink-0 p-4 border-t border-gray-200 bg-white flex items-center justify-between gap-3 z-10">
+            <div className="flex gap-2">
+              <Button onClick={() => setOpenDraft(false)} variant="outline" className="border-gray-300">Close</Button>
+              {latestCRS && (
+                <CRSExportButton
+                  crsId={latestCRS.id}
+                  version={latestCRS.version}
+                />
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              {latestCRS && latestCRS.status === "draft" && (
+                <Button onClick={handleSendToBA} variant="primary">Submit for Review</Button>
+              )}
+              {latestCRS && latestCRS.status === "rejected" && (
+                <Button onClick={() => {
+                  setOpenDraft(false);
+                  setOpenGenerate(true);
+                }} variant="primary" className="bg-orange-600 hover:bg-orange-700">
+                  Regenerate CRS
+                </Button>
+              )}
+              {latestCRS && latestCRS.status === "approved" && (
+                <span className="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-md border border-green-200 flex items-center">
+                  ✅ Final Approved
+                </span>
+              )}
+              {latestCRS && latestCRS.status === "under_review" && (
+                <span className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md border border-blue-200 flex items-center">
+                  ⏳ Pending Review
+                </span>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
