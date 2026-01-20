@@ -16,28 +16,41 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const currentTeamId = idIndex > 0 && idIndex < parts.length ? parts[idIndex] : "";
 
   const hideSidebar = pathname === "/teams" || pathname.startsWith("/auth") || pathname === "/notifications";
+  const isLandingPage = pathname === "/";
 
   return (
     <html lang="en">
-      <body className="h-screen flex flex-col">
+      <head>
+        <title>BridgeAI - AI-Powered Requirements Engineering Platform</title>
+        <meta name="description" content="Transform conversations into professional CRS documents with AI. BridgeAI bridges clients and Business Analysts through intelligent automation." />
+        <link rel="icon" href="/logo.png" type="image/png" />
+      </head>
+      <body className={isLandingPage ? "" : "app-layout h-screen flex flex-col"}>
         <NotificationProvider>
-          {/* Fixed Header */}
-          <Header currentTeamId={currentTeamId} />
+          {!isLandingPage && (
+            <>
+              {/* Fixed Header */}
+              <Header currentTeamId={currentTeamId} />
 
-          {/* Toast Notifications */}
-          <NotificationToastContainer />
+              {/* Toast Notifications */}
+              <NotificationToastContainer />
 
-          {/* Content area with sidebar + main */}
-          <div className="flex flex-1 overflow-hidden">
-            {!hideSidebar && (
-              <Sidebar currentTeamId={currentTeamId} />
-            )}
+              {/* Content area with sidebar + main */}
+              <div className="flex flex-1 overflow-hidden">
+                {!hideSidebar && (
+                  <Sidebar currentTeamId={currentTeamId} />
+                )}
 
-            {/* Main scrollable content */}
-            <main className="flex-1 overflow-y-auto p-6 flex justify-center">
-              <div className="w-full max-w-7xl">{children}</div>
-            </main>
-          </div>
+                {/* Main scrollable content */}
+                <main className="flex-1 overflow-y-auto p-6 flex justify-center">
+                  <div className="w-full max-w-7xl">{children}</div>
+                </main>
+              </div>
+            </>
+          )}
+
+          {/* Landing Page - Full control over layout */}
+          {isLandingPage && children}
         </NotificationProvider>
       </body>
     </html>
