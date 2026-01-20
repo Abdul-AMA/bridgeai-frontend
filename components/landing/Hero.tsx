@@ -30,7 +30,7 @@ export function Hero() {
           {/* Logo */}
           <div className="mb-6 animate-in fade-in duration-700">
             <Image
-              src="/hero.png"
+              src="/hero-transparent.png"
               alt="BridgeAI"
               width={120}
               height={120}

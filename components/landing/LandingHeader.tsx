@@ -11,7 +11,7 @@ export function LandingHeader() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <Image
-            src="/logo.png"
+            src="/logo-full-transparent.png"
             alt="BridgeAI Logo"
             width={40}
             height={40}
@@ -51,12 +51,12 @@ export function LandingHeader() {
 
         {/* CTA Buttons */}
         <div className="flex items-center gap-4">
-          <Link href="/auth">
+          <Link href="/auth/login">
             <Button variant="ghost" size="sm" className="transition-all duration-300 hover:scale-105">
               Sign In
             </Button>
           </Link>
-          <Link href="/auth">
+          <Link href="/auth/register">
             <Button size="sm" className="shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
               Get Started
             </Button>
