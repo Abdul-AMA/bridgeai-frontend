@@ -53,7 +53,7 @@ export function RoleFeatures() {
               ))}
             </ul>
 
-            <Link href="/auth">
+            <Link href="/auth/register">
               <Button size="lg" className="shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                 Start as Client
               </Button>
@@ -119,7 +119,7 @@ export function RoleFeatures() {
               ))}
             </ul>
 
-            <Link href="/auth">
+            <Link href="/auth/register">
               <Button size="lg" className="shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                 Start as Business Analyst
               </Button>

@@ -57,7 +57,7 @@ export function Hero() {
 
           {/* CTAs */}
           <div className="flex flex-col items-center gap-4 sm:flex-row animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
-            <Link href="/auth">
+            <Link href="/auth/login">
               <Button size="lg" className="text-base px-8 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:scale-105">
                 Start Your Free Project
               </Button>

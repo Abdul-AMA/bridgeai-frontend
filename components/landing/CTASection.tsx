@@ -20,7 +20,7 @@ export function CTASection() {
           </p>
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/auth">
+            <Link href="/auth/login">
               <Button size="lg" className="gap-2 text-base px-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                 Start Your Free Project
                 <ArrowRight className="h-4 w-4" />

@@ -78,7 +78,7 @@ export function Footer() {
                 Join teams already transforming their requirements process with
                 AI-powered CRS generation.
               </p>
-              <Link href="/auth">
+              <Link href="/auth/register">
                 <Button size="lg" className="text-base px-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   Get Started for Free
                 </Button>
