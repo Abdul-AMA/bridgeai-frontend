@@ -16,6 +16,7 @@ import { CRSContentDisplay } from "@/components/shared/CRSContentDisplay";
 import { ExportButton } from "@/components/shared/ExportButton";
 import { CRSExportButton } from "@/components/shared/CRSExportButton";
 import { CommentsSection } from "@/components/comments/CommentsSection";
+import { PreviewCRSButton } from "@/components/chats/PreviewCRSButton";
 
 interface ChatUIProps {
   chat: ChatDetail;
@@ -433,6 +434,12 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
             projectId={chat.project_id}
             content={generateChatTranscript()}
             filename={`chat-${chat.id}-${chat.name.replace(/\s+/g, "-").toLowerCase()}`}
+          />
+          <PreviewCRSButton
+            sessionId={chat.id}
+            sessionStatus={chat.status}
+            variant="outline"
+            size="default"
           />
           {canGenerateCRS && (
             <Button onClick={() => setOpenGenerate(true)} variant="primary">

@@ -20,6 +20,19 @@ export interface CRSOut {
   created_at: string;
 }
 
+export interface CRSPreviewOut {
+  content: string;
+  summary_points: string[];
+  overall_summary: string;
+  is_complete: boolean;
+  completeness_percentage: number;
+  missing_required_fields: string[];
+  missing_optional_fields: string[];
+  filled_optional_count: number;
+  project_id: number;
+  session_id: number;
+}
+
 export interface CRSCreate {
   project_id: number;
   content: string;
@@ -159,4 +172,22 @@ export interface CRSAuditLog {
  */
 export async function fetchCRSAudit(crsId: number): Promise<CRSAuditLog[]> {
   return apiCall<CRSAuditLog[]>(`/api/crs/${crsId}/audit`);
+}
+
+/**
+ * Fetch a preview of the CRS for a session without persisting it
+ * Shows partial progress even when CRS is incomplete
+ */
+export async function fetchCRSPreview(sessionId: number): Promise<CRSPreviewOut> {
+  return apiCall<CRSPreviewOut>(`/api/crs/sessions/${sessionId}/preview`);
+}
+
+/**
+ * Generate and persist a draft CRS from current conversation, even if incomplete
+ * Creates a draft status CRS document that can be refined later
+ */
+export async function generateDraftCRS(sessionId: number): Promise<CRSOut> {
+  return apiCall<CRSOut>(`/api/crs/sessions/${sessionId}/generate-draft`, {
+    method: "POST",
+  });
 }
