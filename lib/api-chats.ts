@@ -4,6 +4,7 @@
 import { apiCall } from "./api";
 
 export type SessionStatus = "active" | "completed";
+export type CRSPattern = "iso_iec_ieee_29148" | "ieee_830" | "babok";
 
 export interface ChatMessage {
   id: number;
@@ -21,6 +22,7 @@ export interface ChatSummary {
   crs_document_id: number | null;
   name: string;
   status: SessionStatus;
+  crs_pattern: CRSPattern;
   started_at: string;
   ended_at: string | null;
   message_count: number;
@@ -33,6 +35,7 @@ export interface ChatDetail {
   crs_document_id: number | null;
   name: string;
   status: SessionStatus;
+  crs_pattern: CRSPattern;
   started_at: string;
   ended_at: string | null;
   messages: ChatMessage[];
@@ -56,7 +59,7 @@ export async function fetchProjectChat(projectId: number, chatId: number): Promi
 /**
  * Create a chat session for a project.
  */
-export async function createProjectChat(projectId: number, payload: { name: string; crs_document_id?: number }): Promise<ChatDetail> {
+export async function createProjectChat(projectId: number, payload: { name: string; crs_document_id?: number; crs_pattern?: CRSPattern }): Promise<ChatDetail> {
   return apiCall<ChatDetail>(`/api/projects/${projectId}/chats`, {
     method: "POST",
     body: JSON.stringify(payload),

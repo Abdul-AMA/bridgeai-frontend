@@ -5,11 +5,13 @@
 import { apiCall, getAccessToken } from "./api";
 
 export type CRSStatus = "draft" | "under_review" | "approved" | "rejected";
+export type CRSPattern = "iso_iec_ieee_29148" | "ieee_830" | "babok";
 
 export interface CRSOut {
   id: number;
   project_id: number;
   status: CRSStatus;
+  pattern: CRSPattern;
   version: number;
   content: string;
   summary_points: string[];
@@ -24,6 +26,7 @@ export interface CRSCreate {
   project_id: number;
   content: string;
   summary_points?: string[];
+  pattern?: CRSPattern;
 }
 
 export interface CRSStatusUpdate {

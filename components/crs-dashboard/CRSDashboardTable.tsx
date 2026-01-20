@@ -1,6 +1,6 @@
 "use client";
 
-import { CRSOut, CRSStatus } from "@/lib/api-crs";
+import { CRSOut, CRSStatus, CRSPattern } from "@/lib/api-crs";
 import { CRSStatusBadge } from "@/components/shared/CRSStatusBadge";
 import { Eye } from "lucide-react";
 
@@ -10,6 +10,18 @@ interface CRSDashboardTableProps {
   statusFilter: CRSStatus | "all";
   onFilterChange: (status: CRSStatus | "all") => void;
 }
+
+const PATTERN_LABELS: Record<CRSPattern, string> = {
+  iso_iec_ieee_29148: "ISO/IEC/IEEE 29148",
+  ieee_830: "IEEE 830",
+  bakok: "BABOK",
+};
+
+const PATTERN_COLORS: Record<CRSPattern, string> = {
+  iso_iec_ieee_29148: "bg-blue-100 text-blue-800",
+  ieee_830: "bg-purple-100 text-purple-800",
+  bakok: "bg-green-100 text-green-800",
+};
 
 export function CRSDashboardTable({
   documents,
@@ -64,6 +76,9 @@ export function CRSDashboardTable({
                   Project ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Pattern
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Version
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -85,6 +100,11 @@ export function CRSDashboardTable({
                 <tr key={crs.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     Project #{crs.project_id}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${PATTERN_COLORS[crs.pattern]}`}>
+                      {PATTERN_LABELS[crs.pattern]}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     v{crs.version}
