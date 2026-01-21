@@ -624,10 +624,18 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
               ) : (
                 <>
                   {/* Header Info */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Version</p>
                       <p className="text-2xl font-bold text-gray-900 mt-1">v{latestCRS.version}</p>
+                    </div>
+                    <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pattern</p>
+                      <p className="text-sm font-medium text-gray-900 mt-2">
+                        {latestCRS.pattern === "iso_iec_ieee_29148" ? "ISO/IEC/IEEE 29148" :
+                         latestCRS.pattern === "ieee_830" ? "IEEE 830" :
+                         "BABOK"}
+                      </p>
                     </div>
                     <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Created</p>
