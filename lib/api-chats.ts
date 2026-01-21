@@ -22,7 +22,6 @@ export interface ChatSummary {
   crs_document_id: number | null;
   name: string;
   status: SessionStatus;
-  crs_pattern: CRSPattern;
   started_at: string;
   ended_at: string | null;
   message_count: number;
@@ -35,7 +34,6 @@ export interface ChatDetail {
   crs_document_id: number | null;
   name: string;
   status: SessionStatus;
-  crs_pattern: CRSPattern;
   started_at: string;
   ended_at: string | null;
   messages: ChatMessage[];
