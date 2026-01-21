@@ -278,6 +278,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
   const [crsLoading, setCrsLoading] = useState(false);
   const [crsError, setCrsError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [crsPattern, setCrsPattern] = useState<"iso_iec_ieee_29148" | "ieee_830" | "babok">("babok");
 
   // Determine available actions based on CRS status
   const canGenerateCRS = !latestCRS || latestCRS.status === 'draft' || latestCRS.status === 'rejected';
@@ -329,16 +330,57 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     try {
       setIsGenerating(true);
       setCrsError(null);
-      const crs = await loadCRS();
-      if (crs) {
-        setOpenGenerate(false);
-        setOpenDraft(true);
-      } else {
-        alert("No CRS document is available yet. Please let the agent finish generating it.");
+      
+      // Send a message to trigger CRS generation with the selected pattern
+      const patternName = 
+        crsPattern === "iso_iec_ieee_29148" ? "ISO/IEC/IEEE 29148" :
+        crsPattern === "ieee_830" ? "IEEE 830" :
+        "BABOK";
+        
+      const triggerMessage = `Please generate a CRS document based on our conversation using the ${patternName} standard.`;
+      
+      const payload = {
+        content: triggerMessage,
+        sender_type: (currentUser.role === "ba" ? "ba" : "client") as "ba" | "client",
+        crs_pattern: crsPattern,  // Include selected pattern
+      };
+
+      const pendingLocal: LocalChatMessage = {
+        _localId: `local-${Date.now()}`,
+        id: Date.now() * -1,
+        session_id: chat.id,
+        sender_type: payload.sender_type,
+        sender_id: currentUser.id,
+        content: payload.content,
+        timestamp: new Date().toISOString(),
+        pending: true,
+      };
+
+      setMessages((prev) => [...prev, pendingLocal]);
+      setOpenGenerate(false);
+      
+      if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+        setCrsError("Not connected to chat. Please wait for the connection to be established.");
+        setMessages((prev) =>
+          prev.map((m) => (m._localId === pendingLocal._localId ? { ...m, pending: false, failed: true } : m))
+        );
+        setIsGenerating(false);
+        return;
+      }
+
+      try {
+        console.log("[ChatUI] Sending CRS generation request with pattern:", crsPattern);
+        socketRef.current.send(JSON.stringify(payload));
+        console.log("[ChatUI] CRS generation request sent successfully");
+      } catch (err) {
+        console.error("Failed to send CRS generation request", err);
+        setCrsError("Failed to send CRS generation request. Please try again.");
+        setMessages((prev) =>
+          prev.map((m) => (m._localId === pendingLocal._localId ? { ...m, pending: false, failed: true } : m))
+        );
       }
     } catch (err) {
-      setCrsError(err instanceof Error ? err.message : "Failed to generate CRS");
-      alert("Failed to generate CRS. Please try again.");
+      setCrsError(err instanceof Error ? err.message : "Failed to trigger CRS generation");
     } finally {
       setIsGenerating(false);
     }
@@ -508,20 +550,44 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       <Dialog open={openGenerate} onOpenChange={setOpenGenerate}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Generate CRS Document</DialogTitle>
+            <DialogTitle>Select CRS Standard</DialogTitle>
             <DialogDescription>
-              This will create a CRS document from your chat conversation. You can review and submit it to the BA for approval.
+              Choose the standard for your CRS document. Once clarification is complete, the system will automatically generate your CRS.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4">
-            <p className="text-sm text-gray-600">
-              The system will compile your conversation into a structured CRS document that captures the requirements discussed.
-            </p>
+          <div className="mt-4 space-y-4">
+            <div>
+              <p className="text-sm text-gray-600 mb-3">
+                The system will compile your conversation into a structured CRS document using your selected standard.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                CRS Pattern/Standard
+              </label>
+              <select
+                value={crsPattern}
+                onChange={(e) => setCrsPattern(e.target.value as "iso_iec_ieee_29148" | "ieee_830" | "babok")}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#341bab] focus:border-transparent"
+              >
+                <option value="babok">🎯 BABOK (Default - Business Analysis Body of Knowledge)</option>
+                <option value="ieee_830">📋 IEEE 830 (IEEE Recommended Practice for Software Requirements)</option>
+                <option value="iso_iec_ieee_29148">⚙️ ISO/IEC/IEEE 29148 (Systems and Software Engineering Requirements)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-2">
+                Select the standard that best fits your project requirements.
+              </p>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-blue-900">
+                <strong>How it works:</strong> After you select a standard and submit, the system will ask clarifying questions if needed. Once clarification is complete, your CRS document will be automatically generated using your selected standard.
+              </p>
+            </div>
           </div>
           <DialogFooter className="mt-6 flex gap-2">
             <Button onClick={() => setOpenGenerate(false)} variant="outline">Cancel</Button>
             <Button onClick={handleGenerateCRS} variant="primary" disabled={isGenerating}>
-              {isGenerating ? "Generating..." : "Generate CRS"}
+              {isGenerating ? "Submitting..." : "Submit & Generate"}
             </Button>
           </DialogFooter>
         </DialogContent>
