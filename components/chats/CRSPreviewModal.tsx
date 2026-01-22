@@ -89,62 +89,76 @@ export function CRSPreviewModal({
                     <CRSSection
                       title="Project Overview"
                       fields={[
-                        { label: "Title", value: parsedContent.project_title, required: true },
-                        { label: "Description", value: parsedContent.project_description, required: true },
-                        { label: "Objectives", value: parsedContent.project_objectives, array: true },
+                        { label: "Title", value: parsedContent.project_title, required: true, fieldName: "project_title" },
+                        { label: "Description", value: parsedContent.project_description, required: true, fieldName: "project_description" },
+                        { label: "Objectives", value: parsedContent.project_objectives, array: true, fieldName: "project_objectives" },
                       ]}
+                      fieldSources={preview.field_sources}
+                      weakFields={preview.weak_fields}
                     />
 
                     <CRSSection
                       title="Requirements"
                       fields={[
-                        { label: "Functional Requirements", value: parsedContent.functional_requirements, array: true, required: true },
-                        { label: "Performance Requirements", value: parsedContent.performance_requirements, array: true },
-                        { label: "Security Requirements", value: parsedContent.security_requirements, array: true },
-                        { label: "Scalability Requirements", value: parsedContent.scalability_requirements, array: true },
+                        { label: "Functional Requirements", value: parsedContent.functional_requirements, array: true, required: true, fieldName: "functional_requirements" },
+                        { label: "Performance Requirements", value: parsedContent.performance_requirements, array: true, fieldName: "performance_requirements" },
+                        { label: "Security Requirements", value: parsedContent.security_requirements, array: true, fieldName: "security_requirements" },
+                        { label: "Scalability Requirements", value: parsedContent.scalability_requirements, array: true, fieldName: "scalability_requirements" },
                       ]}
+                      fieldSources={preview.field_sources}
+                      weakFields={preview.weak_fields}
                     />
 
                     <CRSSection
                       title="Stakeholders & Users"
                       fields={[
-                        { label: "Target Users", value: parsedContent.target_users, array: true },
-                        { label: "Stakeholders", value: parsedContent.stakeholders, array: true },
+                        { label: "Target Users", value: parsedContent.target_users, array: true, fieldName: "target_users" },
+                        { label: "Stakeholders", value: parsedContent.stakeholders, array: true, fieldName: "stakeholders" },
                       ]}
+                      fieldSources={preview.field_sources}
+                      weakFields={preview.weak_fields}
                     />
 
                     <CRSSection
                       title="Technical Details"
                       fields={[
-                        { label: "Technology Stack", value: parsedContent.technology_stack, array: true },
-                        { label: "Integrations", value: parsedContent.integrations, array: true },
+                        { label: "Technology Stack", value: parsedContent.technology_stack, array: true, fieldName: "technology_stack" },
+                        { label: "Integrations", value: parsedContent.integrations, array: true, fieldName: "integrations" },
                       ]}
+                      fieldSources={preview.field_sources}
+                      weakFields={preview.weak_fields}
                     />
 
                     <CRSSection
                       title="Constraints & Timeline"
                       fields={[
-                        { label: "Budget Constraints", value: parsedContent.budget_constraints },
-                        { label: "Timeline Constraints", value: parsedContent.timeline_constraints },
-                        { label: "Technical Constraints", value: parsedContent.technical_constraints, array: true },
+                        { label: "Budget Constraints", value: parsedContent.budget_constraints, fieldName: "budget_constraints" },
+                        { label: "Timeline Constraints", value: parsedContent.timeline_constraints, fieldName: "timeline_constraints" },
+                        { label: "Technical Constraints", value: parsedContent.technical_constraints, array: true, fieldName: "technical_constraints" },
                       ]}
+                      fieldSources={preview.field_sources}
+                      weakFields={preview.weak_fields}
                     />
 
                     <CRSSection
                       title="Success Criteria"
                       fields={[
-                        { label: "Success Metrics", value: parsedContent.success_metrics, array: true },
-                        { label: "Acceptance Criteria", value: parsedContent.acceptance_criteria, array: true },
+                        { label: "Success Metrics", value: parsedContent.success_metrics, array: true, fieldName: "success_metrics" },
+                        { label: "Acceptance Criteria", value: parsedContent.acceptance_criteria, array: true, fieldName: "acceptance_criteria" },
                       ]}
+                      fieldSources={preview.field_sources}
+                      weakFields={preview.weak_fields}
                     />
 
                     <CRSSection
                       title="Additional Information"
                       fields={[
-                        { label: "Assumptions", value: parsedContent.assumptions, array: true },
-                        { label: "Risks", value: parsedContent.risks, array: true },
-                        { label: "Out of Scope", value: parsedContent.out_of_scope, array: true },
+                        { label: "Assumptions", value: parsedContent.assumptions, array: true, fieldName: "assumptions" },
+                        { label: "Risks", value: parsedContent.risks, array: true, fieldName: "risks" },
+                        { label: "Out of Scope", value: parsedContent.out_of_scope, array: true, fieldName: "out_of_scope" },
                       ]}
+                      fieldSources={preview.field_sources}
+                      weakFields={preview.weak_fields}
                     />
                   </div>
                 ) : (
@@ -202,12 +216,29 @@ export function CRSPreviewModal({
                       isComplete={preview.is_complete}
                       missingRequiredFields={preview.missing_required_fields}
                       missingOptionalFields={preview.missing_optional_fields}
+                      weakFields={preview.weak_fields}
                       size="lg"
                     />
                   </div>
 
                   {/* What's Missing Section */}
                   <div className="space-y-4">
+                    {/* Special message for 95% (clarification mode) */}
+                    {preview.completeness_percentage === 95 && 
+                     preview.missing_required_fields.length === 0 && 
+                     (!preview.weak_fields || preview.weak_fields.length === 0) && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                          <Info className="h-5 w-5" />
+                          Almost Complete!
+                        </h3>
+                        <p className="text-sm text-blue-700">
+                          Your CRS is nearly ready. The AI is still asking clarification questions to ensure all details are captured accurately. 
+                          Once the conversation is complete, your CRS will reach 100% and be ready for review.
+                        </p>
+                      </div>
+                    )}
+                    
                     {preview.missing_required_fields.length > 0 && (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                         <h3 className="font-semibold text-red-900 mb-3 flex items-center gap-2">
@@ -215,15 +246,42 @@ export function CRSPreviewModal({
                           Required Fields Missing
                         </h3>
                         <ul className="space-y-2">
-                          {preview.missing_required_fields.map((field) => (
+                          {/* Only show fields that are truly missing, not just weak */}
+                          {preview.missing_required_fields.filter(field => 
+                            !preview.weak_fields?.includes(field)
+                          ).map((field) => (
                             <li key={field} className="flex items-center gap-2 text-red-700">
                               <X className="h-4 w-4" />
                               <span>{formatFieldName(field)}</span>
                             </li>
                           ))}
                         </ul>
-                        <p className="mt-3 text-sm text-red-600">
-                          Continue the conversation to provide this information.
+                        {preview.missing_required_fields.filter(field => 
+                          !preview.weak_fields?.includes(field)
+                        ).length > 0 && (
+                          <p className="mt-3 text-sm text-red-600">
+                            Continue the conversation to provide this information.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {preview.weak_fields && preview.weak_fields.length > 0 && (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
+                          <Info className="h-5 w-5" />
+                          Fields Need More Detail
+                        </h3>
+                        <ul className="space-y-2">
+                          {preview.weak_fields.map((field) => (
+                            <li key={field} className="flex items-center gap-2 text-orange-700">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>{formatFieldName(field)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-3 text-sm text-orange-600">
+                          These fields have some content but need more specific details to count toward completion.
                         </p>
                       </div>
                     )}
@@ -303,10 +361,13 @@ interface CRSSectionProps {
     value: any;
     array?: boolean;
     required?: boolean;
+    fieldName?: string;  // For field source tracking
   }>;
+  fieldSources?: Record<string, string>;
+  weakFields?: string[];
 }
 
-function CRSSection({ title, fields }: CRSSectionProps) {
+function CRSSection({ title, fields, fieldSources = {}, weakFields = [] }: CRSSectionProps) {
   const hasContent = fields.some((f) => {
     if (f.array) return Array.isArray(f.value) && f.value.length > 0;
     return f.value && f.value !== "Not specified";
@@ -327,8 +388,19 @@ function CRSSection({ title, fields }: CRSSectionProps) {
 
           if (isEmpty) return null;
 
+          const fieldName = field.fieldName || field.label.toLowerCase().replace(/ /g, "_");
+          const source = fieldSources[fieldName] || "empty";
+          const isInferred = source === "llm_inference";
+          const isWeak = weakFields.includes(fieldName);
+
           return (
-            <div key={field.label}>
+            <div 
+              key={field.label}
+              className={cn(
+                "rounded-lg p-3 transition-colors",
+                isInferred && "bg-yellow-50 border border-yellow-200"
+              )}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <label className="font-medium text-gray-700 text-sm">
                   {field.label}
@@ -338,7 +410,27 @@ function CRSSection({ title, fields }: CRSSectionProps) {
                     Required
                   </Badge>
                 )}
+                {isInferred && (
+                  <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+                    Inferred
+                  </Badge>
+                )}
+                {isWeak && (
+                  <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">
+                    Needs Detail
+                  </Badge>
+                )}
               </div>
+              {isInferred && (
+                <p className="text-xs text-yellow-700 mb-2 italic">
+                  This field was inferred by AI. Please verify or provide more details.
+                </p>
+              )}
+              {isWeak && (
+                <p className="text-xs text-orange-700 mb-2 italic">
+                  This field needs more detail to count toward completion.
+                </p>
+              )}
               {field.array && Array.isArray(field.value) ? (
                 <ul className="space-y-1.5 ml-4">
                   {field.value.map((item: any, idx: number) => {

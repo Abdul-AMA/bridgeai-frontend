@@ -8,6 +8,7 @@ interface CRSProgressIndicatorProps {
   isComplete: boolean;
   missingRequiredFields?: string[];
   missingOptionalFields?: string[];
+  weakFields?: string[];
   className?: string;
   size?: "sm" | "md" | "lg";
 }
@@ -17,19 +18,22 @@ export function CRSProgressIndicator({
   isComplete,
   missingRequiredFields = [],
   missingOptionalFields = [],
+  weakFields = [],
   className,
   size = "md",
 }: CRSProgressIndicatorProps) {
   // Color based on completion percentage
   const getProgressColor = () => {
     if (percentage >= 100) return "text-green-600 bg-green-100";
-    if (percentage >= 60) return "text-yellow-600 bg-yellow-100";
+    if (percentage >= 80) return "text-lime-600 bg-lime-100";
+    if (percentage >= 40) return "text-yellow-600 bg-yellow-100";
     return "text-red-600 bg-red-100";
   };
 
   const getProgressBarColor = () => {
     if (percentage >= 100) return "bg-green-500";
-    if (percentage >= 60) return "bg-yellow-500";
+    if (percentage >= 80) return "bg-lime-500";
+    if (percentage >= 40) return "bg-yellow-500";
     return "bg-red-500";
   };
 
@@ -85,32 +89,53 @@ export function CRSProgressIndicator({
       </div>
 
       {/* Status Message */}
-      {!isComplete && (
-        <div className="text-xs text-gray-600 space-y-1">
-          {missingRequiredFields.length > 0 && (
-            <div className="flex items-start gap-1.5">
-              <AlertCircle className="h-3 w-3 mt-0.5 text-red-500 flex-shrink-0" />
-              <span className="text-red-600 font-medium">
-                Missing required: {missingRequiredFields.map(formatFieldName).join(", ")}
-              </span>
-            </div>
-          )}
-          {missingRequiredFields.length === 0 && missingOptionalFields.length > 2 && (
-            <div className="flex items-start gap-1.5">
-              <Circle className="h-3 w-3 mt-0.5 text-yellow-500 flex-shrink-0" />
-              <span className="text-yellow-600">
-                Need {2 - (5 - missingOptionalFields.length)} more optional field(s) to complete
-              </span>
-            </div>
-          )}
-          {isComplete && (
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-3 w-3 text-green-500" />
-              <span className="text-green-600 font-medium">CRS is ready!</span>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="text-xs text-gray-600 space-y-1">
+        {isComplete && (
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="h-3 w-3 text-green-500" />
+            <span className="text-green-600 font-medium">CRS is ready!</span>
+          </div>
+        )}
+        
+        {!isComplete && (
+          <>
+            {/* Special message for 95% (clarification mode cap) */}
+            {percentage === 95 && missingRequiredFields.length === 0 && weakFields.length === 0 && (
+              <div className="flex items-start gap-1.5">
+                <Circle className="h-3 w-3 mt-0.5 text-blue-500 flex-shrink-0" />
+                <span className="text-blue-600">
+                  Almost there! The AI is still gathering final details.
+                </span>
+              </div>
+            )}
+            {/* Show truly missing fields (not in weak_fields) */}
+            {missingRequiredFields.filter(f => !weakFields.includes(f)).length > 0 && (
+              <div className="flex items-start gap-1.5">
+                <AlertCircle className="h-3 w-3 mt-0.5 text-red-500 flex-shrink-0" />
+                <span className="text-red-600 font-medium">
+                  Missing required: {missingRequiredFields.filter(f => !weakFields.includes(f)).map(formatFieldName).join(", ")}
+                </span>
+              </div>
+            )}
+            {weakFields.length > 0 && (
+              <div className="flex items-start gap-1.5">
+                <Circle className="h-3 w-3 mt-0.5 text-orange-500 flex-shrink-0" />
+                <span className="text-orange-600">
+                  Needs more detail: {weakFields.map(formatFieldName).join(", ")}
+                </span>
+              </div>
+            )}
+            {missingRequiredFields.length === 0 && weakFields.length === 0 && missingOptionalFields.length > 2 && percentage !== 95 && (
+              <div className="flex items-start gap-1.5">
+                <Circle className="h-3 w-3 mt-0.5 text-yellow-500 flex-shrink-0" />
+                <span className="text-yellow-600">
+                  Need {2 - (5 - missingOptionalFields.length)} more optional field(s) to complete
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
