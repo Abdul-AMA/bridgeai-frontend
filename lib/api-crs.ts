@@ -43,6 +43,7 @@ export interface CRSCreate {
   summary_points?: string[];
   allow_partial?: boolean;
   completeness_percentage?: number;
+  session_id?: number;
 }
 
 export interface CRSStatusUpdate {

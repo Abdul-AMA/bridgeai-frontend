@@ -370,6 +370,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
         summary_points: preview.summary_points,
         allow_partial: isPartial,
         completeness_percentage: preview.completeness_percentage,
+        session_id: chat.id,
       });
 
       setLatestCRS(crs);
