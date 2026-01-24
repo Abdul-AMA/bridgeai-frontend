@@ -37,13 +37,13 @@ export function PreviewCRSButton({
   const handlePreview = async () => {
     setLoading(true);
     setIsModalOpen(true);
-    
+
     try {
       const previewData = await fetchCRSPreview(sessionId);
       setPreview(previewData);
     } catch (error: any) {
       console.error("Failed to fetch CRS preview:", error);
-      
+
       // Handle specific error cases
       if (error.message?.includes("No CRS content available")) {
         toast({
@@ -57,6 +57,12 @@ export function PreviewCRSButton({
           description: "Unable to find this chat session.",
           variant: "destructive",
         });
+      } else if (error.message?.includes("No messages found")) {
+        toast({
+          title: "Chat is empty",
+          description: "Please start a conversation before generating a CRS.",
+          variant: "default",
+        });
       } else {
         toast({
           title: "Failed to generate preview",
@@ -64,7 +70,7 @@ export function PreviewCRSButton({
           variant: "destructive",
         });
       }
-      
+
       setIsModalOpen(false);
     } finally {
       setLoading(false);
@@ -73,28 +79,28 @@ export function PreviewCRSButton({
 
   const handleGenerateDraft = async () => {
     setGeneratingDraft(true);
-    
+
     try {
       await generateDraftCRS(sessionId);
-      
+
       toast({
         title: "Draft CRS Generated!",
         description: "Your draft CRS has been saved. You can now view and submit it for review.",
         variant: "default",
       });
-      
+
       setIsModalOpen(false);
-      
+
       // Notify parent component to refresh
       if (onCRSGenerated) {
         onCRSGenerated();
       }
-      
+
       // Refresh the page to show the new CRS
       router.refresh();
     } catch (error: any) {
       console.error("Failed to generate draft CRS:", error);
-      
+
       toast({
         title: "Failed to generate draft",
         description: error.message || "An unexpected error occurred. Please try again.",
