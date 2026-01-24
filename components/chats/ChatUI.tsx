@@ -52,7 +52,10 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     // Only reset messages when switching to a different chat
     // We don't want to sync on chat.messages changes because we have local real-time state
     setMessages(chat.messages || []);
-  }, [chat.id]);
+    if (chat.crs_pattern) {
+      setCrsPattern(chat.crs_pattern);
+    }
+  }, [chat.id, chat.crs_pattern]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -206,6 +209,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     const payload = {
       content: input.trim(),
       sender_type: (currentUser.role === "ba" ? "ba" : "client") as "ba" | "client",
+      crs_pattern: crsPattern, // Send current pattern selection
     };
 
     const pendingLocal: LocalChatMessage = {
@@ -280,7 +284,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
   const [crsLoading, setCrsLoading] = useState(false);
   const [crsError, setCrsError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [crsPattern, setCrsPattern] = useState<"iso_iec_ieee_29148" | "ieee_830" | "babok">("babok");
+  const [crsPattern, setCrsPattern] = useState<"iso_iec_ieee_29148" | "ieee_830" | "babok" | "agile_user_stories">(chat.crs_pattern || "babok");
   const [openPartialConfirm, setOpenPartialConfirm] = useState(false);
   const [previewData, setPreviewData] = useState<CRSPreviewOut | null>(null);
 
@@ -334,7 +338,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     try {
       setIsGenerating(true);
       setCrsError(null);
-      
+
       // Fetch preview data to check completeness
       const preview = await getPreviewCRS(chat.id);
       setPreviewData(preview);
@@ -365,7 +369,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       setIsGenerating(true);
       setCrsError(null);
       const isPartial = preview.completeness_percentage < 100;
-      
+
       const crs = await createCRS({
         project_id: chat.project_id,
         content: preview.content,
@@ -380,8 +384,8 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       setOpenPartialConfirm(false);
       setOpenGenerate(false);
       setOpenDraft(true);
-      
-      alert(isPartial 
+
+      alert(isPartial
         ? "✅ Draft CRS created successfully! You can continue clarification or edit the document."
         : "✅ CRS created successfully! You can review and submit it for approval."
       );
@@ -465,6 +469,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+
           <div
             className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${connectionState === "open"
               ? "bg-green-50 text-green-700"
@@ -544,21 +549,40 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
         )}
 
         <div className="flex gap-3 items-end">
-          <Textarea
-            ref={textareaRef}
-            placeholder="Type your message... (Shift+Enter for new line)"
-            value={input}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
-            className="flex-1 min-h-[44px] max-h-[200px] resize-none overflow-y-auto"
-            disabled={connectionState !== "open"}
-            rows={1}
-          />
+          <div className="flex-1 flex flex-col gap-2">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Type your message... (Shift+Enter for new line)"
+              value={input}
+              onChange={handleTextareaChange}
+              onKeyDown={handleKeyDown}
+              className="min-h-[44px] max-h-[200px] resize-none overflow-y-auto"
+              disabled={connectionState !== "open"}
+              rows={1}
+            />
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Pattern:</span>
+                <select
+                  value={crsPattern}
+                  onChange={(e) => setCrsPattern(e.target.value as "iso_iec_ieee_29148" | "ieee_830" | "babok" | "agile_user_stories")}
+                  className="bg-transparent text-xs font-medium text-gray-700 focus:outline-none cursor-pointer hover:text-gray-900 transition-colors"
+                  title="Select the requirements pattern for AI interpretation"
+                >
+                  <option value="babok">BABOK</option>
+                  <option value="ieee_830">IEEE 830</option>
+                  <option value="iso_iec_ieee_29148">ISO 29148</option>
+                  <option value="agile_user_stories">Agile Stories</option>
+                </select>
+              </div>
+              <span className="text-xs text-gray-400">Shift+Enter for new line</span>
+            </div>
+          </div>
           <Button
             onClick={handleSend}
             variant="primary"
             disabled={isSending || connectionState !== "open"}
-            className="h-[44px]"
+            className="h-[44px] mb-6"
           >
             {isSending ? "Sending..." : "Send"}
           </Button>
@@ -569,32 +593,15 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       <Dialog open={openGenerate} onOpenChange={setOpenGenerate}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Select CRS Standard</DialogTitle>
+            <DialogTitle>Generate CRS Document</DialogTitle>
             <DialogDescription>
-              Choose the standard for your CRS document. Once clarification is complete, the system will automatically generate your CRS.
+              The system will generate your CRS document based on the conversation history and your selected pattern.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-4">
             <div>
               <p className="text-sm text-gray-600 mb-3">
-                The system will compile your conversation into a structured CRS document using your selected standard.
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                CRS Pattern/Standard
-              </label>
-              <select
-                value={crsPattern}
-                onChange={(e) => setCrsPattern(e.target.value as "iso_iec_ieee_29148" | "ieee_830" | "babok")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#341bab] focus:border-transparent"
-              >
-                <option value="babok">🎯 BABOK (Default - Business Analysis Body of Knowledge)</option>
-                <option value="ieee_830">📋 IEEE 830 (IEEE Recommended Practice for Software Requirements)</option>
-                <option value="iso_iec_ieee_29148">⚙️ ISO/IEC/IEEE 29148 (Systems and Software Engineering Requirements)</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-2">
-                Select the standard that best fits your project requirements.
+                The system will compile your conversation into a structured CRS document.
               </p>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -651,8 +658,9 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pattern</p>
                       <p className="text-sm font-medium text-gray-900 mt-2">
                         {latestCRS.pattern === "iso_iec_ieee_29148" ? "ISO/IEC/IEEE 29148" :
-                         latestCRS.pattern === "ieee_830" ? "IEEE 830" :
-                         "BABOK"}
+                          latestCRS.pattern === "ieee_830" ? "IEEE 830" :
+                            latestCRS.pattern === "agile_user_stories" ? "Agile User Stories" :
+                              "BABOK"}
                       </p>
                     </div>
                     <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">

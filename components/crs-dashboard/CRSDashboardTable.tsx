@@ -15,12 +15,14 @@ const PATTERN_LABELS: Record<CRSPattern, string> = {
   iso_iec_ieee_29148: "ISO/IEC/IEEE 29148",
   ieee_830: "IEEE 830",
   babok: "BABOK",
+  agile_user_stories: "Agile User Stories",
 };
 
 const PATTERN_COLORS: Record<CRSPattern, string> = {
   iso_iec_ieee_29148: "bg-blue-100 text-blue-800",
   ieee_830: "bg-purple-100 text-purple-800",
   babok: "bg-green-100 text-green-800",
+  agile_user_stories: "bg-orange-100 text-orange-800",
 };
 
 export function CRSDashboardTable({

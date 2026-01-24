@@ -5,7 +5,7 @@
 import { apiCall, getAccessToken } from "./api";
 
 export type CRSStatus = "draft" | "under_review" | "approved" | "rejected";
-export type CRSPattern = "iso_iec_ieee_29148" | "ieee_830" | "babok";
+export type CRSPattern = "iso_iec_ieee_29148" | "ieee_830" | "babok" | "agile_user_stories";
 
 export interface CRSOut {
   id: number;

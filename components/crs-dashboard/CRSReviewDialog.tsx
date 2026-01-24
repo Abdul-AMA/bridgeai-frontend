@@ -17,12 +17,14 @@ const PATTERN_LABELS: Record<CRSPattern, string> = {
   iso_iec_ieee_29148: "ISO/IEC/IEEE 29148",
   ieee_830: "IEEE 830",
   babok: "BABOK",
+  agile_user_stories: "Agile User Stories",
 };
 
 const PATTERN_COLORS: Record<CRSPattern, { bg: string; text: string }> = {
   iso_iec_ieee_29148: { bg: "bg-blue-50", text: "text-blue-900" },
   ieee_830: { bg: "bg-purple-50", text: "text-purple-900" },
   babok: { bg: "bg-green-50", text: "text-green-900" },
+  agile_user_stories: { bg: "bg-orange-50", text: "text-orange-900" },
 };
 
 interface CRSReviewDialogProps {
