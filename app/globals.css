@@ -41,6 +41,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-chat-bg: var(--chat-bg);
+  --color-chat-input: var(--chat-input);
+  --color-chat-user: var(--chat-user);
+  --color-chat-ai: var(--card);
 }
 
 :root {
@@ -76,6 +80,10 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+  --chat-bg: oklch(1 0 0);
+  --chat-input: oklch(1 0 0);
+  --chat-user: oklch(0.93 0.032 265.755);
+  /* Light variant of primary */
 }
 
 .dark {
@@ -110,12 +118,17 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+  --chat-bg: oklch(0.129 0.042 264.695);
+  --chat-input: oklch(0.18 0.04 265);
+  /* Dark mode chat user bubble color */
+  --chat-user: var(--primary);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -128,11 +141,14 @@
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .hide-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -176,6 +192,7 @@ body.app-layout {
   .hover-lift {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
+
   .hover-lift:hover {
     transform: translateY(-4px);
   }

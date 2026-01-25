@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, WifiOff } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+import { ArrowLeft, Loader2, WifiOff, Sparkles } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ChatDetail, ChatMessage as ChatMessageType } from "@/lib/api-chats";
 import { ChatMessage, TypingIndicator, ChatMessageData } from "@/components/chats/ChatMessage";
@@ -18,6 +17,7 @@ import { CRSExportButton } from "@/components/shared/CRSExportButton";
 import { CommentsSection } from "@/components/comments/CommentsSection";
 import { PreviewCRSButton } from "@/components/chats/PreviewCRSButton";
 import { PartialCRSConfirmModal } from "@/components/chats/PartialCRSConfirmModal";
+import ChatInput from "./ChatInput";
 
 interface ChatUIProps {
   chat: ChatDetail;
@@ -33,14 +33,12 @@ type LocalChatMessage = ChatMessageData & { _localId?: string; pending?: boolean
 
 export function ChatUI({ chat, currentUser }: ChatUIProps) {
   const [messages, setMessages] = useState<LocalChatMessage[]>(chat.messages || []);
-  const [input, setInput] = useState("");
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [wsError, setWsError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const router = useRouter();
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -204,10 +202,10 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     );
   }, [messages]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSendMessage = (content: string) => {
+    if (!content.trim()) return;
     const payload = {
-      content: input.trim(),
+      content: content.trim(),
       sender_type: (currentUser.role === "ba" ? "ba" : "client") as "ba" | "client",
       crs_pattern: crsPattern, // Send current pattern selection
     };
@@ -224,12 +222,6 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     };
 
     setMessages((prev) => [...prev, pendingLocal]);
-    setInput("");
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
 
     if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
       setWsError("Not connected. Please wait for the chat to reconnect.");
@@ -254,23 +246,6 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
       );
     } finally {
       setIsSending(false);
-    }
-  };
-
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-
-    // Auto-resize textarea
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
     }
   };
 
@@ -438,156 +413,161 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-chat-bg">
       {/* Chat Header */}
-      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            aria-label="Back to project"
-            onClick={() => {
-              if (returnTo) {
-                try {
-                  sessionStorage.removeItem("chatReturnTo");
-                } catch {
-                  // ignore
+      <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-30">
+        <div className="w-full px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              aria-label="Back to project"
+              onClick={() => {
+                if (returnTo) {
+                  try {
+                    sessionStorage.removeItem("chatReturnTo");
+                  } catch {
+                    // ignore
+                  }
+                  router.push(returnTo);
+                } else {
+                  router.back();
                 }
-                router.push(returnTo);
-              } else {
-                router.back();
-              }
-            }}
-            className="p-2 rounded hover:bg-gray-100"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </button>
+              }}
+              className="p-2 rounded hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
 
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">{chat.name}</h2>
-            <p className="text-sm text-gray-500">
-              {currentUser.full_name ? `${currentUser.full_name} - ` : ""}Project chat #{chat.id}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-
-          <div
-            className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${connectionState === "open"
-              ? "bg-green-50 text-green-700"
-              : connectionState === "connecting"
-                ? "bg-yellow-50 text-yellow-700"
-                : "bg-red-50 text-red-700"
-              }`}
-          >
-            {connectionState === "connecting" && <Loader2 className="h-3 w-3 animate-spin" />}
-            {connectionState !== "open" && <WifiOff className="h-3 w-3" />}
-            <span>
-              {connectionState === "open"
-                ? "Connected"
-                : connectionState === "connecting"
-                  ? "Connecting..."
-                  : "Disconnected"}
-            </span>
-          </div>
-          <ExportButton
-            projectId={chat.project_id}
-            content={generateChatTranscript()}
-            filename={`chat-${chat.id}-${chat.name.replace(/\s+/g, "-").toLowerCase()}`}
-            crsId={latestCRS?.id}
-          />
-          <PreviewCRSButton
-            sessionId={chat.id}
-            sessionStatus={chat.status}
-            variant="outline"
-            size="default"
-          />
-          {canGenerateCRS && (
-            <Button onClick={() => setOpenGenerate(true)} variant="primary">
-              {latestCRS?.status === 'rejected' ? 'Regenerate CRS' : 'Generate CRS document'}
-            </Button>
-          )}
-          <Button onClick={() => setOpenDraft(true)} variant="secondary">
-            View CRS {latestCRS?.status === 'approved' && '(Approved)'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50">
-        {wsError && (
-          <div className="text-sm text-red-700 bg-red-50 border border-red-100 px-3 py-2 rounded">
-            {wsError}
-          </div>
-        )}
-        <AnimatePresence mode="popLayout">
-          {sortedMessages.map((msg) => (
-            <ChatMessage
-              key={msg.id}
-              message={msg}
-              isOwn={isOwnMessage(msg)}
-              currentUserName={currentUser.full_name}
-            />
-          ))}
-          {isAiTyping && <TypingIndicator key="typing-indicator" />}
-        </AnimatePresence>
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="p-4 border-t border-gray-200 bg-white">
-        {isUnderReview && (
-          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
-            <div className="font-semibold mb-1">CRS Under Review</div>
-            <div className="text-xs">Your CRS is currently being reviewed by the BA. You can continue chatting while waiting for follow-up questions or new features.</div>
-          </div>
-        )}
-        {isRejected && latestCRS?.rejection_reason && (
-          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
-            <div className="font-semibold mb-1">Your CRS was rejected</div>
-            <div className="text-xs">Feedback: {latestCRS.rejection_reason}</div>
-            <div className="text-xs mt-2">Please review the feedback and regenerate an improved version.</div>
-          </div>
-        )}
-
-        <div className="flex gap-3 items-end">
-          <div className="flex-1 flex flex-col gap-2">
-            <Textarea
-              ref={textareaRef}
-              placeholder="Type your message... (Shift+Enter for new line)"
-              value={input}
-              onChange={handleTextareaChange}
-              onKeyDown={handleKeyDown}
-              className="min-h-[44px] max-h-[200px] resize-none overflow-y-auto"
-              disabled={connectionState !== "open"}
-              rows={1}
-            />
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">Pattern:</span>
-                <select
-                  value={crsPattern}
-                  onChange={(e) => setCrsPattern(e.target.value as "iso_iec_ieee_29148" | "ieee_830" | "babok" | "agile_user_stories")}
-                  className="bg-transparent text-xs font-medium text-gray-700 focus:outline-none cursor-pointer hover:text-gray-900 transition-colors"
-                  title="Select the requirements pattern for AI interpretation"
-                >
-                  <option value="babok">BABOK</option>
-                  <option value="ieee_830">IEEE 830</option>
-                  <option value="iso_iec_ieee_29148">ISO 29148</option>
-                  <option value="agile_user_stories">Agile Stories</option>
-                </select>
-              </div>
-              <span className="text-xs text-gray-400">Shift+Enter for new line</span>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 leading-tight">{chat.name}</h2>
+              <p className="text-sm text-gray-500">
+                {currentUser.full_name ? `${currentUser.full_name} - ` : ""}Project chat #{chat.id}
+              </p>
             </div>
           </div>
-          <Button
-            onClick={handleSend}
-            variant="primary"
-            disabled={isSending || connectionState !== "open"}
-            className="h-[44px] mb-6"
-          >
-            {isSending ? "Sending..." : "Send"}
-          </Button>
+          <div className="flex items-center gap-3">
+
+            <div
+              className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${connectionState === "open"
+                ? "bg-green-50 text-green-700"
+                : connectionState === "connecting"
+                  ? "bg-yellow-50 text-yellow-700"
+                  : "bg-red-50 text-red-700"
+                }`}
+            >
+              {connectionState === "connecting" && <Loader2 className="h-3 w-3 animate-spin" />}
+              {connectionState !== "open" && <WifiOff className="h-3 w-3" />}
+              <span>
+                {connectionState === "open"
+                  ? "Connected"
+                  : connectionState === "connecting"
+                    ? "Connecting..."
+                    : "Disconnected"}
+              </span>
+            </div>
+            <ExportButton
+              projectId={chat.project_id}
+              content={generateChatTranscript()}
+              filename={`chat-${chat.id}-${chat.name.replace(/\s+/g, "-").toLowerCase()}`}
+              crsId={latestCRS?.id}
+            />
+            <PreviewCRSButton
+              sessionId={chat.id}
+              sessionStatus={chat.status}
+              variant="outline"
+              size="default"
+            />
+            {canGenerateCRS && (
+              <Button onClick={() => setOpenGenerate(true)} variant="primary">
+                {latestCRS?.status === 'rejected' ? 'Regenerate CRS' : 'Generate CRS document'}
+              </Button>
+            )}
+            <Button onClick={() => setOpenDraft(true)} variant="secondary">
+              View CRS {latestCRS?.status === 'approved' && '(Approved)'}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {sortedMessages.length === 0 ? (
+        /* Empty State */
+        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-8"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-chat-input border border-border flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-2xl font-semibold text-foreground mb-2">
+              How can I help you today?
+            </h1>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Start a conversation by typing your message below. I'm here to assist you with anything you need.
+            </p>
+          </motion.div>
+          <div className="w-full max-w-3xl">
+            <ChatInput
+              onSend={handleSendMessage}
+              disabled={connectionState !== "open" || isSending}
+              crsPattern={crsPattern}
+              onCrsPatternChange={setCrsPattern}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto w-full scroll-smooth">
+            <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+              {wsError && (
+                <div className="text-sm text-red-700 bg-red-50 border border-red-100 px-3 py-2 rounded">
+                  {wsError}
+                </div>
+              )}
+              <AnimatePresence mode="popLayout">
+                {sortedMessages.map((msg) => (
+                  <ChatMessage
+                    key={msg.id}
+                    message={msg}
+                    isOwn={isOwnMessage(msg)}
+                    currentUserName={currentUser.full_name}
+                  />
+                ))}
+                {isAiTyping && <TypingIndicator key="typing-indicator" />}
+              </AnimatePresence>
+              <div ref={bottomRef} />
+            </div>
+          </div>
+
+          {/* Input Area */}
+          <div className="p-4 bg-gradient-to-t from-chat-bg via-chat-bg to-transparent">
+            <div className="max-w-4xl mx-auto">
+              {isUnderReview && (
+                <div className="mb-3 p-3 bg-blue-50/80 backdrop-blur-sm border border-blue-200 rounded-xl text-blue-800 text-sm shadow-sm">
+                  <div className="font-semibold mb-1">CRS Under Review</div>
+                  <div className="text-xs">Your CRS is currently being reviewed by the BA. You can continue chatting while waiting.</div>
+                </div>
+              )}
+              {isRejected && latestCRS?.rejection_reason && (
+                <div className="mb-3 p-3 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-xl text-red-800 text-sm shadow-sm">
+                  <div className="font-semibold mb-1">Your CRS was rejected</div>
+                  <div className="text-xs">Feedback: {latestCRS.rejection_reason}</div>
+                  <div className="text-xs mt-2">Please review the feedback and regenerate an improved version.</div>
+                </div>
+              )}
+
+              <ChatInput
+                onSend={handleSendMessage}
+                disabled={connectionState !== "open" || isSending}
+                crsPattern={crsPattern}
+                onCrsPatternChange={setCrsPattern}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Generate CRS Dialog */}
       <Dialog open={openGenerate} onOpenChange={setOpenGenerate}>
