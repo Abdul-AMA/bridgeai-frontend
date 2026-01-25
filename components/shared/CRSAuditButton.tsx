@@ -13,7 +13,11 @@ interface CRSAuditButtonProps {
 export function CRSAuditButton({ crsId }: CRSAuditButtonProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [logs, setLogs] = useState<CRSAuditLog[]>([]);
+    interface FormattedAuditLog extends CRSAuditLog {
+        formattedDate: string;
+    }
+
+    const [logs, setLogs] = useState<FormattedAuditLog[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -31,7 +35,27 @@ export function CRSAuditButton({ crsId }: CRSAuditButtonProps) {
             const sorted = data.sort((a, b) =>
                 new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
             );
-            setLogs(sorted);
+
+            // Pre-process date formatting
+            const formattedLogs: FormattedAuditLog[] = sorted.map(log => {
+                let formattedDate = log.changed_at || "Unknown Date";
+                try {
+                    const date = new Date(log.changed_at);
+                    if (!isNaN(date.getTime())) {
+                        formattedDate = date.toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        });
+                    }
+                } catch (e) {
+                    // fall back to original string
+                }
+                return { ...log, formattedDate };
+            });
+
+            setLogs(formattedLogs);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load audit trail");
         } finally {
@@ -120,23 +144,7 @@ export function CRSAuditButton({ crsId }: CRSAuditButtonProps) {
                                                 {formatActionName(log.action)}
                                             </p>
                                             <span className="text-xs text-gray-500">
-                                                {(() => {
-                                                    try {
-                                                        const date = new Date(log.changed_at);
-                                                        // Check for invalid date
-                                                        if (isNaN(date.getTime())) {
-                                                            return log.changed_at; // Fallback to raw string
-                                                        }
-                                                        return date.toLocaleString("en-US", {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            hour: "2-digit",
-                                                            minute: "2-digit"
-                                                        });
-                                                    } catch (e) {
-                                                        return log.changed_at || "Unknown Date";
-                                                    }
-                                                })()}
+                                                {log.formattedDate}
                                             </span>
                                         </div>
 
