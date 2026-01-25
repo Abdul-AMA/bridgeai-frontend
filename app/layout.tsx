@@ -1,4 +1,4 @@
-import { ClientLayout } from "@/components/ClientLayout";
+import { LayoutWrapper } from "@/components/LayoutWrapper";
 import "./globals.css";
 import { geistSans } from "@/fonts";
 
@@ -19,9 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/logo.png" type="image/png" />
       </head>
       <body className={`h-screen flex flex-col ${geistSans.className}`}>
-        <ClientLayout>
+        <LayoutWrapper>
           {children}
-        </ClientLayout>
+        </LayoutWrapper>
       </body>
     </html>
   );

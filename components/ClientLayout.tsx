@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/header/Header";
 import { Sidebar } from "@/components/sidebar/Sidebar";
@@ -8,6 +9,7 @@ import { NotificationProvider } from "@/components/notifications/NotificationPro
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     // Extract team ID synchronously from /teams/{id}/...
     const parts = pathname.split("/");
@@ -27,7 +29,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             {/* Content area with sidebar + main */}
             <div className="flex flex-1 overflow-hidden">
                 {!hideSidebar && (
-                    <Sidebar currentTeamId={currentTeamId} />
+                    <Sidebar 
+                        currentTeamId={currentTeamId} 
+                        isCollapsed={isCollapsed}
+                        onToggle={() => setIsCollapsed(!isCollapsed)}
+                    />
                 )}
 
                 {/* Main scrollable content */}
