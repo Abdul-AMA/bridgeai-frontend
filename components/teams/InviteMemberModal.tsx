@@ -1,13 +1,22 @@
+/**
+ * Invite Member Modal Component
+ * Modal for inviting members to a team
+ * Single Responsibility: Member invitation UI
+ */
+
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Mail, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { invitationAPI, InvitationRequest } from "@/lib/api-invitations";
+import { FormField } from "@/components/auth/FormField";
+import { FormSelect, SelectOption } from "@/components/auth/FormSelect";
+import { ErrorAlert } from "@/components/auth/ErrorAlert";
+import { useInviteMember } from "@/hooks/useInviteMember";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { MemberRole } from "@/dto/teams.dto";
 
 interface InviteMemberModalProps {
   teamId: string;
@@ -18,11 +27,12 @@ interface InviteMemberModalProps {
   triggerVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "primary";
 }
 
-interface FormErrors {
-  email?: string;
-  role?: string;
-  general?: string;
-}
+const ROLE_OPTIONS: SelectOption[] = [
+  { value: "viewer", label: "Viewer" },
+  { value: "member", label: "Member" },
+  { value: "admin", label: "Admin" },
+  { value: "owner", label: "Owner" },
+];
 
 export function InviteMemberModal({ 
   teamId, 
@@ -34,84 +44,71 @@ export function InviteMemberModal({
 }: InviteMemberModalProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<InvitationRequest['role']>("member");
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [success, setSuccess] = useState(false);
+  const [role, setRole] = useState<MemberRole>("member");
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
+  const { isLoading, error, success, inviteMember, resetSuccess } = useInviteMember();
 
-    // Validate email
-    if (!email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!email.includes('@') || !email.includes('.')) {
-      newErrors.email = "Please enter a valid email address";
-    }
+  const validationRules = useMemo(
+    () => ({
+      email: {
+        required: true,
+        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        custom: (value: string) => {
+          if (!value.trim()) return "Email is required";
+          if (!value.includes("@") || !value.includes(".")) {
+            return "Please enter a valid email address";
+          }
+          return null;
+        },
+      },
+      role: {
+        required: true,
+        custom: (value: string) => {
+          if (!value) return "Role is required";
+          return null;
+        },
+      },
+    }),
+    []
+  );
 
-    // Validate role
-    if (!role) {
-      newErrors.role = "Role is required";
-    }
+  const { errors, validateAll } = useFormValidation(validationRules);
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+      const isValid = validateAll({ email, role });
+      if (!isValid) return;
 
-    setIsLoading(true);
-    setErrors({});
-    setSuccess(false);
-
-    try {
-      await invitationAPI.sendInvitation(teamId, {
+      const inviteSuccess = await inviteMember(teamId, {
         email: email.trim(),
         role,
       });
 
-      setSuccess(true);
-      setEmail("");
-      setRole("member");
-      
-      // Auto close modal after 2 seconds
-      setTimeout(() => {
-        setOpen(false);
-        setSuccess(false);
-        onInviteSent?.();
-      }, 2000);
+      if (inviteSuccess) {
+        // Auto close modal after 2 seconds
+        setTimeout(() => {
+          setOpen(false);
+          resetSuccess();
+          onInviteSent?.();
+        }, 2000);
+      }
+    },
+    [email, role, teamId, validateAll, inviteMember, resetSuccess, onInviteSent]
+  );
 
-    } catch (error) {
-      setErrors({
-        general: error instanceof Error ? error.message : "Failed to send invitation"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen) {
-      // Reset form when closing
-      setEmail("");
-      setRole("member");
-      setErrors({});
-      setSuccess(false);
-    }
-  };
-
-  const roleOptions = [
-    { value: "viewer" as const, label: "Viewer", description: "Can view team content" },
-    { value: "member" as const, label: "Member", description: "Can contribute to projects" },
-    { value: "admin" as const, label: "Admin", description: "Can manage team settings" },
-    { value: "owner" as const, label: "Owner", description: "Full control over the team" },
-  ];
+  const handleOpenChange = useCallback(
+    (newOpen: boolean) => {
+      setOpen(newOpen);
+      if (!newOpen) {
+        setEmail("");
+        setRole("member");
+        resetSuccess();
+      }
+    },
+    [resetSuccess]
+  );
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -152,62 +149,30 @@ export function InviteMemberModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter email address"
-                className={cn(errors.email && "border-red-500 focus:ring-red-500")}
-                disabled={isLoading}
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  {errors.email}
-                </p>
-              )}
-            </div>
+            <FormField
+              id="email"
+              label="Email Address"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              error={errors.email}
+              placeholder="Enter email address"
+              disabled={isLoading}
+              required
+            />
 
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                Role
-              </label>
-              <Select value={role} onValueChange={(value: InvitationRequest['role']) => setRole(value)}>
-                <SelectTrigger className={cn(errors.role && "border-red-500")}>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roleOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{option.label}</span>
-                        <span className="text-xs text-gray-500">{option.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.role && (
-                <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4" />
-                  {errors.role}
-                </p>
-              )}
-            </div>
+            <FormSelect
+              id="role"
+              label="Role"
+              value={role}
+              onChange={(value) => setRole(value as MemberRole)}
+              options={ROLE_OPTIONS}
+              error={errors.role}
+              placeholder="Select a role"
+              disabled={isLoading}
+            />
 
-            {errors.general && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  {errors.general}
-                </p>
-              </div>
-            )}
+            {error && <ErrorAlert message={error} />}
 
             <div className="flex gap-2 pt-4">
               <Button
