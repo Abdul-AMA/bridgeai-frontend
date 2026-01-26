@@ -1,12 +1,49 @@
 /**
  * Hooks Export
  * Central export point for all custom hooks
+ * Organized by feature domain for better maintainability
  */
 
-export { useLogin } from "./useLogin";
-export { useRegister } from "./useRegister";
-export { useFormValidation } from "./useFormValidation";
-export type { ValidationRule, ValidationRules, ValidationErrors } from "./useFormValidation";
-export { useTeamsList } from "./useTeamsList";
-export { useCreateTeam } from "./useCreateTeam";
-export { useInviteMember } from "./useInviteMember";
+// ============================================================================
+// AUTH HOOKS
+// ============================================================================
+export { useLogin } from "./auth/useLogin";
+export { useRegister } from "./auth/useRegister";
+export { useCurrentUser } from "./auth/useCurrentUser";
+
+// ============================================================================
+// TEAMS HOOKS
+// ============================================================================
+export { useTeamsList } from "./teams/useTeamsList";
+export { useCreateTeam } from "./teams/useCreateTeam";
+export { useTeamDetails } from "./teams/useTeamDetails";
+export { useTeamActions } from "./teams/useTeamActions";
+export { useTeamMembers } from "./teams/useTeamMembers";
+export { useTeamInvitations } from "./teams/useTeamInvitations";
+export { useTeamSettings } from "./teams/useTeamSettings";
+export { useInviteMember } from "./teams/useInviteMember";
+
+// ============================================================================
+// PROJECTS HOOKS
+// ============================================================================
+export { useProjects } from "./projects/useProjects";
+export { useCreateProject } from "./projects/useCreateProject";
+export { usePendingProjects } from "./projects/usePendingProjects";
+
+// ============================================================================
+// CRS HOOKS
+// ============================================================================
+export { useCRSDashboard } from "./crs/useCRSDashboard";
+export { useMyCRSRequests } from "./crs/useMyCRSRequests";
+export { useCRSStatusUpdate } from "./crs/useCRSStatusUpdate";
+export { useCRSExport } from "./crs/useCRSExport";
+export { useCRSAuditLogs } from "./crs/useCRSAuditLogs";
+
+// ============================================================================
+// SHARED/COMMON HOOKS
+// ============================================================================
+export { useFormValidation } from "./shared/useFormValidation";
+export type { ValidationRule, ValidationRules, ValidationErrors } from "./shared/useFormValidation";
+export { useRoleGuard } from "./shared/useRoleGuard";
+export { useModal } from "./shared/useModal";
+export { useFlashMessage } from "./shared/useFlashMessage";
