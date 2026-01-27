@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { exportProject, downloadBlob, type ExportFormat } from "@/lib/api-exports";
-import { exportCRS } from "@/lib/api-crs";
+import { exportCRS } from "@/services/crs.service";
 
 interface ExportButtonProps {
   projectId: number;

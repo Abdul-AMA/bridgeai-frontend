@@ -13,3 +13,46 @@ export type {
   ApiErrorDTO,
   UserRole,
 } from "./auth.dto";
+
+export type {
+  TeamDTO,
+  CreateTeamRequestDTO,
+  CreateTeamResponseDTO,
+  TeamListItemDTO,
+  InviteMemberRequestDTO,
+  InviteMemberResponseDTO,
+  TeamMemberDTO,
+  TeamStatus,
+  MemberRole,
+} from "./teams.dto";
+
+export type {
+  ProjectDTO,
+  CreateProjectRequestDTO,
+  CreateProjectResponseDTO,
+  ProjectListItemDTO,
+  ApproveProjectRequestDTO,
+  RejectProjectRequestDTO,
+  ProjectStatus,
+} from "./projects.dto";
+
+export type {
+  CRSDTO,
+  CRSListItemDTO,
+  CreateCRSRequestDTO,
+  UpdateCRSStatusRequestDTO,
+  UpdateCRSStatusResponseDTO,
+  CRSStatus,
+} from "./crs.dto";
+
+export type {
+  ChatSessionDTO,
+  ChatMessageDTO,
+  LocalChatMessage,
+  SendMessagePayload,
+  WebSocketMessageData,
+  CRSPreviewOut,
+  CreateCRSPayload,
+  SenderType,
+  ConnectionState,
+} from "./chat.dto";

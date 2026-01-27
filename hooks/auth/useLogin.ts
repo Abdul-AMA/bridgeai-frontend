@@ -8,14 +8,14 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { LoginRequestDTO } from "@/dto/auth.dto";
-import { loginUser, AuthenticationError } from "@/services/auth.service";
+import { LoginRequestDTO } from "../../dto/auth.dto";
+import { loginUser, AuthenticationError } from "../../services/auth.service";
 import {
   storeAuthToken,
   storeUserRole,
   notifyAuthStateChange,
-} from "@/services/token.service";
-import { getRoleBasedRedirectPath } from "@/lib/utils";
+} from "../../services/token.service";
+import { getRoleBasedRedirectPath } from "../../lib/utils";
 
 interface UseLoginReturn {
   isLoading: boolean;
