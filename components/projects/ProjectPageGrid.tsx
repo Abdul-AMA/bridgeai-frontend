@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CRSOut, fetchLatestCRS } from "@/lib/api-crs";
+import { fetchLatestCRS } from "@/services/crs.service";
 import { CRSDTO } from "@/dto/crs.dto";
 import { CRSStatusBadge } from "@/components/shared/CRSStatusBadge";
 import { CRSExportButton } from "@/components/shared/CRSExportButton";

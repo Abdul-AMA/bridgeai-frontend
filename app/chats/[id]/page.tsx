@@ -5,15 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { ChatUI } from "@/components/chats/ChatUI";
 import { ChatDetail, fetchProjectChat } from "@/lib/api-chats";
 import { getCurrentUser } from "@/lib/api";
+import { CurrentUserDTO } from "@/dto";
 
 interface ChatPageProps {
   params: Promise<{ id: string }>;
-}
-
-interface CurrentUser {
-  id: number;
-  role: "ba" | "client" | string;
-  full_name?: string;
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
@@ -22,7 +17,7 @@ export default function ChatPage({ params }: ChatPageProps) {
 
   const searchParams = useSearchParams();
   const [chat, setChat] = useState<ChatDetail | null>(null);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUserDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +49,7 @@ export default function ChatPage({ params }: ChatPageProps) {
 
         const [chatData, userData] = await Promise.all([
           fetchProjectChat(projectId, Number(id)),
-          getCurrentUser<CurrentUser>(),
+          getCurrentUser<CurrentUserDTO>(),
         ]);
 
         // Restrict access: only clients can view chats

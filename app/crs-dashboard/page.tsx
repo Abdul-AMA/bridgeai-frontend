@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CRSDashboardTable } from "@/components/crs-dashboard/CRSDashboardTable";
 import { CRSReviewDialog } from "@/components/crs-dashboard/CRSReviewDialog";
-import { fetchCRSForReview } from "@/lib/api-crs";
+import { fetchCRSForReview } from "@/services/crs.service";
 import { CRSDTO, CRSStatus } from "@/dto/crs.dto";
 import { getCurrentUser } from "@/lib/api";
 import { Loader2, FileCheck } from "lucide-react";
