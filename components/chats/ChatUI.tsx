@@ -24,6 +24,7 @@ import {
 } from "@/hooks";
 import { ChatSessionDTO, CurrentUserDTO, SendMessagePayload } from "@/dto";
 import { getAuthToken } from "@/services/token.service";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ChatUIProps {
   chat: ChatSessionDTO;
@@ -32,6 +33,7 @@ interface ChatUIProps {
 
 export function ChatUI({ chat, currentUser }: ChatUIProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [openDraft, setOpenDraft] = useState(false);
   const [openGenerate, setOpenGenerate] = useState(false);
   const [openPartialConfirm, setOpenPartialConfirm] = useState(false);
@@ -87,7 +89,7 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
   const handleMessage = useCallback(
     (data: any) => {
       handleWebSocketMessage(data, {
-        onMessage: addMessage,
+        onMessage: (msg) => addMessage(msg as any),
         onCRSComplete: loadCRS,
       });
     },
@@ -95,14 +97,6 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
   );
 
   // Initialize WebSocket connection
-  console.log("[ChatUI] WebSocket init params:", {
-    sessionId: chat.id,
-    projectId: chat.project_id,
-    hasToken: !!accessToken,
-    tokenLength: accessToken?.length,
-    enabled: !!accessToken,
-  });
-
   const { sendMessage, isConnected } = useChatSocket({
     sessionId: chat.id,
     projectId: chat.project_id,
@@ -196,7 +190,11 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
         await confirmGenerateCRS(preview);
       }
     } catch (err) {
-      alert("Failed to check CRS status. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to check CRS status. Please try again.",
+        variant: "destructive",
+      });
     }
   }, [fetchPreview]);
 
@@ -208,13 +206,18 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
         setOpenGenerate(false);
         setOpenDraft(true);
 
-        alert(
-          isPartial
-            ? "✅ Draft CRS created successfully! You can continue clarification or edit the document."
-            : "✅ CRS created successfully! You can review and submit it for approval."
-        );
+        toast({
+          title: "Success",
+          description: isPartial
+            ? "Draft CRS created successfully! You can continue clarification or edit the document."
+            : "CRS created successfully! You can review and submit it for approval.",
+        });
       } catch (err) {
-        alert(err instanceof Error ? err.message : "Failed to generate CRS. Please try again.");
+        toast({
+          title: "Error",
+          description: err instanceof Error ? err.message : "Failed to generate CRS. Please try again.",
+          variant: "destructive",
+        });
       }
     },
     [generateCRS]
@@ -229,11 +232,16 @@ export function ChatUI({ chat, currentUser }: ChatUIProps) {
     try {
       await submitForReview();
       setOpenDraft(false);
-      alert(
-        "✅ CRS submitted successfully! Your document is now under review by the Business Analyst. You can continue chatting while waiting for the review."
-      );
+      toast({
+        title: "Success",
+        description: "CRS submitted successfully! Your document is now under review by the Business Analyst. You can continue chatting while waiting for the review.",
+      });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to submit CRS");
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to submit CRS",
+        variant: "destructive",
+      });
     }
   }, [submitForReview]);
 

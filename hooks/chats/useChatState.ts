@@ -23,11 +23,10 @@ export function useChatState() {
   }, []);
 
   const handleWebSocketMessage = useCallback((data: WebSocketMessageData, handlers: {
-    onMessage: (msg: any) => void;
+    onMessage: (msg: WebSocketMessageData) => void;
     onCRSComplete?: () => void;
   }) => {
     if (data?.error) {
-      console.error("[Chat] Server error:", data.error);
       setWsError(data.error);
       return;
     }
@@ -39,7 +38,6 @@ export function useChatState() {
 
     // Validate message format
     if (typeof data?.id !== "number" || !data.content) {
-      console.warn("[Chat] Invalid message format:", data);
       return;
     }
 

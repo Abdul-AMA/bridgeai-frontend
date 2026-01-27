@@ -25,28 +25,19 @@ export class ChatWebSocketService {
   private config: WebSocketConfig | null = null;
 
   connect(config: WebSocketConfig): void {
-    console.log("[ChatWebSocketService] connect() called with:", {
-      url: config.url.replace(/token=.*/, "token=***"),
-      sessionId: config.sessionId,
-    });
-
     if (this.socket?.readyState === WebSocket.OPEN) {
-      console.warn("[ChatWebSocketService] Already connected, readyState:", this.socket.readyState);
       return;
     }
 
     this.config = config;
     this.didOpenRef = false;
 
-    console.log("[ChatWebSocketService] Creating new WebSocket...");
     const ws = new WebSocket(config.url);
     this.socket = ws;
 
-    console.log("[ChatWebSocketService] WebSocket created, readyState:", ws.readyState);
     config.onConnectionChange("connecting");
 
     ws.onopen = () => {
-      console.log("[ChatWebSocketService] WebSocket connected");
       config.onConnectionChange("open");
       this.didOpenRef = true;
     };
@@ -62,34 +53,26 @@ export class ChatWebSocketService {
       if (this.didOpenRef) {
         const codeInfo = event.code ? ` (code ${event.code})` : "";
         config.onError(event.reason || `Connection closed${codeInfo}`);
-        console.warn("[ChatWebSocketService] WebSocket closed", {
-          code: event.code,
-          reason: event.reason,
-        });
       }
     };
 
     ws.onmessage = (event) => {
-      console.log("[ChatWebSocketService] Message received:", event.data);
       try {
         const data = JSON.parse(event.data);
-        console.log("[ChatWebSocketService] Parsed data:", data);
         config.onMessage(data);
       } catch (err) {
-        console.error("[ChatWebSocketService] Failed to parse message", err);
+        // Silently ignore malformed messages
       }
     };
   }
 
-  send(message: any): void {
+  send(message: unknown): void {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       throw new ChatWebSocketError("Not connected. Please wait for the chat to reconnect.");
     }
 
     try {
-      console.log("[ChatWebSocketService] Sending message:", message);
       this.socket.send(JSON.stringify(message));
-      console.log("[ChatWebSocketService] Message sent successfully");
     } catch (err) {
       throw new ChatWebSocketError("Failed to send message. Please try again.");
     }

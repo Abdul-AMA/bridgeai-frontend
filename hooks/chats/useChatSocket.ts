@@ -41,35 +41,21 @@ export function useChatSocket({
   }, [onMessage, onError, onConnectionChange]);
 
   useEffect(() => {
-    console.log("[useChatSocket] Effect triggered:", {
-      enabled,
-      sessionId,
-      hasToken: !!token,
-      tokenLength: token?.length,
-      didMount: didMountRef.current,
-    });
-
     if (!enabled) {
-      console.log("[useChatSocket] Skipping - not enabled");
       return;
     }
     if (!sessionId) {
-      console.log("[useChatSocket] Skipping - no sessionId");
       return;
     }
     if (!token) {
-      console.log("[useChatSocket] Skipping - no token");
       return;
     }
     if (didMountRef.current) {
-      console.log("[useChatSocket] Skipping - already mounted");
       return;
     }
 
     const wsProtocol = apiBase.startsWith("https") ? "wss" : "ws";
     const wsUrl = `${wsProtocol}://${apiBase.replace(/^https?:\/\//, "")}/api/projects/${projectId}/chats/${sessionId}/ws?token=${token}`;
-
-    console.log("[useChatSocket] Connecting to:", wsUrl.replace(token, "***TOKEN***"));
 
     chatWebSocketService.connect({
       url: wsUrl,
@@ -83,13 +69,12 @@ export function useChatSocket({
     didMountRef.current = true;
 
     return () => {
-      console.log("[useChatSocket] Disconnecting WebSocket");
       chatWebSocketService.disconnect();
       didMountRef.current = false;
     };
   }, [enabled, sessionId, projectId, apiBase, token]);
 
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: unknown) => {
     chatWebSocketService.send(message);
   }, []);
 
