@@ -79,10 +79,8 @@ export default function ChatPage({ params }: ChatPageProps) {
   }
 
   return (
-    <div className="flex justify-center mt-14 px-6 sm:px-8">
-      <div className="w-full max-w-4xl bg-white shadow rounded-2xl flex flex-col h-[80vh]">
-        <ChatUI chat={chat} currentUser={currentUser} />
-      </div>
+    <div className="w-full h-[calc(100vh-3.5rem)] mt-14 bg-background">
+      <ChatUI chat={chat} currentUser={currentUser} />
     </div>
   );
 }
