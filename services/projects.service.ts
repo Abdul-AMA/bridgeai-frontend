@@ -234,3 +234,34 @@ export async function fetchProjectById(projectId: number): Promise<ProjectDTO> {
     );
   }
 }
+
+/**
+ * Update an existing project
+ */
+export async function updateProject(
+  projectId: number,
+  updates: { name?: string; description?: string }
+): Promise<ProjectDTO> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+      method: "PUT",
+      headers: createAuthHeaders(),
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = parseApiError(errorData, response.status);
+      throw new ProjectsError(errorMessage, response.status, errorData);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ProjectsError) {
+      throw error;
+    }
+    throw new ProjectsError(
+      error instanceof Error ? error.message : "Network error occurred"
+    );
+  }
+}
