@@ -93,14 +93,13 @@ export function CRSDraftDialog({
         <DialogHeader className="px-6 py-4 border-b border-gray-100 shrink-0 bg-white">
           <DialogTitle className="flex items-center justify-between">
             <span className="text-xl">CRS Document</span>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pr-8">
               {currentCrs && <CRSStatusBadge status={currentCrs.status} />}
               {currentCrs && (
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={() => setIsCommentsCollapsed(!isCommentsCollapsed)}
-                  className={`${isCommentsCollapsed ? 'bg-gray-100' : ''}`}
+                  className={`min-w-[44px] ${isCommentsCollapsed ? 'bg-gray-100' : ''}`}
                   title={isCommentsCollapsed ? "Show comments" : "Hide comments"}
                 >
                   <MessageSquare className="w-4 h-4" />
@@ -228,7 +227,7 @@ export function CRSDraftDialog({
         {!isEditing && (
           <DialogFooter className="shrink-0 p-4 border-t border-gray-200 bg-white flex items-center justify-between gap-3 z-10">
             <div className="flex gap-2">
-              <Button onClick={() => onOpenChange(false)} variant="outline" className="border-gray-300">
+              <Button onClick={() => onOpenChange(false)} variant="outline">
                 Close
               </Button>
               {currentCrs && <CRSExportButton crsId={currentCrs.id} version={currentCrs.version} />}
