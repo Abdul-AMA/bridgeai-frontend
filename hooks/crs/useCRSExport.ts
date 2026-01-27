@@ -5,7 +5,8 @@
  */
 
 import { useState, useCallback } from "react";
-import { exportCRS, CRSError } from "../../services/crs.service";
+import { exportCRS } from "../../services/crs.service";
+import { CRSError } from "../../services/errors.service";
 
 interface UseCRSExportReturn {
   isExporting: boolean;

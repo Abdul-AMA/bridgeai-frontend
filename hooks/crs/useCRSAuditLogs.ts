@@ -5,7 +5,8 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { fetchCRSAudit, CRSError } from "@/services/crs.service";
+import { fetchCRSAudit } from "@/services/crs.service";
+import { CRSError } from "@/services/errors.service";
 import { CRSAuditLogDTO } from "@/dto/crs.dto";
 
 interface FormattedAuditLog extends CRSAuditLogDTO {

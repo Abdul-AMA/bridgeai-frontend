@@ -5,7 +5,8 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { fetchMyCRSRequests, CRSError } from "../../services/crs.service";
+import { fetchMyCRSRequests } from "../../services/crs.service";
+import { CRSError } from "../../services/errors.service";
 import { CRSDTO, CRSStatus } from "../../dto/crs.dto";
 
 interface UseMyCRSRequestsReturn {

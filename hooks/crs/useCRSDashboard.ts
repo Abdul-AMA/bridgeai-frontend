@@ -5,11 +5,8 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  fetchCRSForReview,
-  updateCRSStatus,
-  CRSError,
-} from "../../services/crs.service";
+import { fetchCRSForReview, updateCRSStatus } from "../../services/crs.service";
+import { CRSError } from "../../services/errors.service";
 import {
   CRSDTO,
   CRSStatus,

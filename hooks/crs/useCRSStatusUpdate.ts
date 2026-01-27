@@ -5,7 +5,8 @@
  */
 
 import { useState, useCallback } from "react";
-import { updateCRSStatus, CRSError } from "../../services/crs.service";
+import { updateCRSStatus } from "../../services/crs.service";
+import { CRSError } from "../../services/errors.service";
 import { CRSStatus } from "../../dto/crs.dto";
 
 interface UseCRSStatusUpdateReturn {

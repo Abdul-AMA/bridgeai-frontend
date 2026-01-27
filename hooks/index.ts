@@ -47,3 +47,13 @@ export type { ValidationRule, ValidationRules, ValidationErrors } from "./shared
 export { useRoleGuard } from "./shared/useRoleGuard";
 export { useModal } from "./shared/useModal";
 export { useFlashMessage } from "./shared/useFlashMessage";
+
+// ============================================================================
+// CHAT HOOKS
+// ============================================================================
+export { useChatSocket } from "./chats/useChatSocket";
+export { useChatMessages } from "./chats/useChatMessages";
+export { useChatCRS } from "./chats/useChatCRS";
+export { useChatInput } from "./chats/useChatInput";
+export { useChatScroll } from "./chats/useChatScroll";
+export { useChatState } from "./chats/useChatState";
