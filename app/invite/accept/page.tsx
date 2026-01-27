@@ -1,107 +1,64 @@
+/**
+ * Accept Invitation Page
+ * Handles team invitation acceptance flow
+ * Refactored for SOLID principles and best practices
+ */
+
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle, Clock, Mail, Shield, Users } from "lucide-react";
-import { invitationAPI, InvitationPublicDetails } from "@/lib/api-invitations";
+import { useInvitationDetails, useInvitationActions } from "@/hooks";
 import Link from "next/link";
+import { getAuthToken } from "@/services/token.service";
 
 function AcceptInviteClientPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const token = searchParams.get('token');
+  const token = searchParams.get("token");
 
-  const [invitation, setInvitation] = useState<InvitationPublicDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [accepting, setAccepting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const {
+    invitation,
+    isLoading: loading,
+    error: loadError,
+  } = useInvitationDetails(token);
+
+  const {
+    isAccepting: accepting,
+    success,
+    error: actionError,
+    handleAccept,
+  } = useInvitationActions();
+
+  const error = loadError || actionError;
+
   useEffect(() => {
-    // Check authentication status from cookies
-    const checkAuth = () => {
-      const cookies = document.cookie.split(';');
-      for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'token' && value) {
-          return true;
-        }
-      }
-      // Fallback to localStorage
-      return !!localStorage.getItem('token');
-    };
-    setIsAuthenticated(checkAuth());
+    const authToken = getAuthToken();
+    setIsAuthenticated(!!authToken);
   }, []);
 
-  useEffect(() => {
-    if (!token) {
-      setError('Invalid invitation link');
-      setLoading(false);
-      return;
+  const handleAcceptInvitation = useCallback(() => {
+    if (token) {
+      handleAccept(token, invitation?.team_id);
     }
+  }, [token, invitation?.team_id, handleAccept]);
 
-    fetchInvitationDetails();
-  }, [token]);
-
-  const fetchInvitationDetails = async () => {
-    if (!token) return;
-
-    try {
-      setLoading(true);
-      const details = await invitationAPI.getInvitationDetails(token);
-      setInvitation(details);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load invitation');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAcceptInvitation = async () => {
-    if (!token) return;
-
-    try {
-      setAccepting(true);
-      const result = await invitationAPI.acceptInvitation(token);
-      setSuccess(true);
-      
-      // Redirect to team page after 2 seconds
-      setTimeout(() => {
-        const teamId = result.team?.id || result.team_id || invitation?.team_id;
-        if (teamId) {
-          router.push(`/teams/${teamId}/dashboard`);
-        } else {
-          router.push('/teams');
-        }
-      }, 2000);
-    } catch (err) {
-      if (err instanceof Error && err.message === 'Authentication required') {
-        // Redirect to login with return URL
-        const returnUrl = encodeURIComponent(`/invite/accept?token=${token}`);
-        router.push(`/auth/login?redirect=${returnUrl}`);
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to accept invitation');
-      }
-    } finally {
-      setAccepting(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
-  };
+  }, []);
 
-  const isExpired = invitation && new Date(invitation.expires_at) < new Date();
+  const isExpired =
+    invitation && new Date(invitation.expires_at) < new Date();
 
   if (loading) {
     return (
