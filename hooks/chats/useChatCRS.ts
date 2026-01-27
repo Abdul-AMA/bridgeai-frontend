@@ -47,10 +47,10 @@ export function useChatCRS({
       const crs = await fetchCRSForSession(sessionId);
       setLatestCRS(crs);
       return crs;
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Don't show error for 404 (no CRS yet)
-      if (err.statusCode !== 404) {
-        setCrsError(err.message || "Failed to load CRS");
+      if (err && typeof err === 'object' && 'statusCode' in err && err.statusCode !== 404) {
+        setCrsError(err instanceof Error ? err.message : "Failed to load CRS");
       }
       setLatestCRS(null);
       return null;

@@ -4,10 +4,10 @@
  */
 
 import { useState, useRef, useCallback, ChangeEvent, KeyboardEvent } from "react";
-import { SendMessagePayload } from "@/dto";
+import { SendMessagePayload, LocalChatMessage } from "@/dto";
 
 interface UseChatInputOptions {
-  onSend: (payload: SendMessagePayload, pendingMessage: any) => Promise<void>;
+  onSend: (payload: SendMessagePayload, pendingMessage: LocalChatMessage) => Promise<void>;
   senderType: "ba" | "client";
   crsPattern: "iso_iec_ieee_29148" | "ieee_830" | "babok" | "agile_user_stories";
   isConnected: boolean;
@@ -49,9 +49,15 @@ export function useChatInput({
       crs_pattern: crsPattern,
     };
 
-    const pendingLocal = {
+    const pendingLocal: LocalChatMessage = {
       _localId: `local-${Date.now()}`,
+      id: Date.now() * -1,
+      session_id: 0, // Will be set by parent
+      sender_type: senderType,
+      sender_id: 0, // Will be set by parent
       content: payload.content,
+      timestamp: new Date().toISOString(),
+      pending: true,
     };
 
     setIsSending(true);

@@ -5,7 +5,7 @@
 
 import { useEffect, useRef } from "react";
 
-export function useChatScroll(dependencies: any[] = []) {
+export function useChatScroll(dependencies: ReadonlyArray<unknown> = []) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
