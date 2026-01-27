@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Eye, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CRSPreviewModal } from "./CRSPreviewModal";
-import { CRSPreviewOut, fetchCRSPreview, generateDraftCRS } from "@/lib/api-crs";
+import { CRSPreviewOut, getPreviewCRS, generateDraftCRS } from "@/services/crs.service";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -39,7 +39,7 @@ export function PreviewCRSButton({
     setIsModalOpen(true);
 
     try {
-      const previewData = await fetchCRSPreview(sessionId);
+      const previewData = await getPreviewCRS(sessionId);
       setPreview(previewData);
     } catch (error: any) {
       console.error("Failed to fetch CRS preview:", error);
