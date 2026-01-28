@@ -1,60 +1,49 @@
+/**
+ * Project Chats Page
+ * Project page with initial tab set to chats
+ * REFACTORED: Following SOLID principles
+ * - Uses hooks for state management
+ * - Uses services for API calls
+ * - Optimized with proper error handling
+ */
+
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use } from "react";
 import { ProjectPageGrid } from "@/components/projects/ProjectPageGrid";
-import { apiCall, getCurrentUser } from "@/lib/api";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { useProjectDetails, useCurrentUser } from "@/hooks";
 
-interface Project {
-  id: number;
-  name: string;
-  description: string | null;
-  status: string;
-  team_id: number;
-  created_by: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: "ba" | "client";
-}
-
-interface Props {
+interface ProjectChatsPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function ProjectChatsPage({ params }: Props) {
+export default function ProjectChatsPage({ params }: ProjectChatsPageProps) {
   const { id } = use(params);
-  const [project, setProject] = useState<Project | null>(null);
-  const [userRole, setUserRole] = useState<"BA" | "Client">("Client");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const projectId = parseInt(id, 10);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [projectData, userData] = await Promise.all([
-          apiCall<Project>(`/api/projects/${id}`),
-          getCurrentUser<User>(),
-        ]);
-        setProject(projectData);
-        setUserRole(userData.role === "ba" ? "BA" : "Client");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load project");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const { project, isLoading: projectLoading, error: projectError } = useProjectDetails(projectId);
+  const { user, isLoading: userLoading } = useCurrentUser();
 
-    fetchData();
-  }, [id]);
+  const isLoading = projectLoading || userLoading;
+  const userRole = user?.role === "ba" ? "BA" : "Client";
 
-  if (isLoading) return <p className="text-center mt-20">Loading project...</p>;
-  if (error || !project) return <p className="text-center mt-20">{error || "Project not found"}</p>;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <LoadingSpinner message="Loading project..." />
+      </div>
+    );
+  }
+
+  if (projectError || !project) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <ErrorState message={projectError || "Project not found"} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center mt-14 px-6 sm:px-8">

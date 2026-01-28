@@ -48,8 +48,50 @@ export {
   approveProject,
   rejectProject,
   fetchProjectById,
+  updateProject,
   ProjectsError,
 } from "./projects.service";
+
+// Chats services
+export {
+  fetchProjectChats,
+  fetchChatById,
+  createChat,
+  updateChat,
+  deleteChat,
+  ChatsError,
+} from "./chats.service";
+export type {
+  ChatSummaryDTO,
+  ChatDetailDTO,
+  ChatMessageDTO,
+  CreateChatRequestDTO,
+  UpdateChatRequestDTO,
+  SessionStatus,
+  CRSPattern,
+} from "./chats.service";
+
+// Notification services
+export {
+  fetchNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  acceptInvitationFromNotification,
+  NotificationError,
+} from "./notifications.service";
+
+// Invitation services
+export {
+  sendInvitation,
+  getInvitationDetails,
+  acceptInvitation,
+  rejectInvitation,
+  cancelInvitation,
+  resendInvitation,
+  getPendingInvitations,
+  InvitationError,
+} from "./invitations.service";
 
 // CRS services
 export {

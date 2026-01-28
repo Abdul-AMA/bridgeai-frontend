@@ -1,109 +1,56 @@
+/**
+ * Pending Requests Page
+ * BA-only page for reviewing and approving/rejecting project requests
+ * Refactored for SOLID principles and best practices
+ */
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PendingRequestsTable } from "@/components/pending-requests/PendingRequestsTable";
 import { ProjectDetailsDialog } from "@/components/pending-requests/ProjectDetailsDialog";
-import {
-  fetchPendingProjects,
-  approveProject,
-  rejectProject,
-  Project,
-} from "@/lib/api-projects";
-import { getCurrentUser } from "@/lib/api";
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: "ba" | "client";
-  full_name: string;
-}
+import { usePendingRequests } from "@/hooks";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { ProjectDTO } from "@/dto/projects.dto";
+import { useCurrentUser } from "@/hooks";
 
 export default function PendingRequestsPage() {
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<ProjectDTO | null>(null);
+  const { user: currentUser, isLoading: userLoading } = useCurrentUser();
 
-  // Fetch user and verify BA role
+  const {
+    projects,
+    isLoading,
+    error,
+    successMessage,
+    handleApprove,
+    handleReject,
+  } = usePendingRequests();
+
+  // Verify BA role
   useEffect(() => {
-    const verifyUser = async () => {
-      try {
-        const user = await getCurrentUser<User>();
-        if (user.role !== "ba") {
-          router.push("/");
-          return;
-        }
-        // User is BA, continue to fetch projects
-        await fetchProjects();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to verify user");
-        setIsLoading(false);
-      }
-    };
-
-    verifyUser();
-  }, [router]);
-
-  const fetchProjects = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const data = await fetchPendingProjects();
-      setProjects(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load pending requests");
-    } finally {
-      setIsLoading(false);
+    if (!userLoading && currentUser && currentUser.role !== "ba") {
+      router.push("/");
     }
-  };
+  }, [currentUser, userLoading, router]);
 
-  const handleApprove = async (projectId: number) => {
-    try {
-      setError(null);
-      setSuccessMessage(null);
-      await approveProject(projectId);
-      setSuccessMessage("Project approved successfully");
-      
-      // Remove approved project from list
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to approve project");
-    }
-  };
-
-  const handleReject = async (projectId: number, reason: string) => {
-    try {
-      setError(null);
-      setSuccessMessage(null);
-      await rejectProject(projectId, reason);
-      setSuccessMessage("Project rejected successfully");
-      
-      // Remove rejected project from list
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reject project");
-    }
-  };
-
-  const handleViewDetails = (project: Project) => {
+  const handleViewDetails = useCallback((project: ProjectDTO) => {
     setSelectedProject(project);
-  };
+  }, []);
 
-  if (isLoading) {
+  const handleCloseDetails = useCallback(() => {
+    setSelectedProject(null);
+  }, []);
+
+  if (userLoading || isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <p className="text-lg text-muted-foreground">Loading pending requests...</p>
-      </div>
+      <LoadingSpinner
+        className="min-h-screen"
+        message="Loading pending requests..."
+      />
     );
   }
 
@@ -112,7 +59,9 @@ export default function PendingRequestsPage() {
       <div className="w-full max-w-7xl">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight">Pending Project Requests</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Pending Project Requests
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Review and approve or reject client project requests
           </p>
@@ -135,7 +84,8 @@ export default function PendingRequestsPage() {
         {/* Projects Count */}
         <div className="mb-4">
           <p className="text-sm text-muted-foreground">
-            {projects.length} {projects.length === 1 ? "request" : "requests"} pending review
+            {projects.length} {projects.length === 1 ? "request" : "requests"}{" "}
+            pending review
           </p>
         </div>
 
@@ -150,10 +100,11 @@ export default function PendingRequestsPage() {
         {/* Details Dialog */}
         <ProjectDetailsDialog
           isOpen={selectedProject !== null}
-          onClose={() => setSelectedProject(null)}
+          onClose={handleCloseDetails}
           project={selectedProject}
         />
       </div>
     </div>
   );
 }
+
