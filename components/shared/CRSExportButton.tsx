@@ -24,7 +24,6 @@ export function CRSExportButton({ crsId, version }: CRSExportButtonProps) {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            size="sm"
             disabled={isExporting}
             className="gap-2"
           >

@@ -410,6 +410,43 @@ export async function updateCRSStatus(
   }
 }
 
+/**
+ * Update CRS content directly (in-place editor)
+ */
+export async function updateCRSContent(
+  crsId: number,
+  content: string,
+  expectedVersion?: number,
+  fieldSources?: Record<string, string>
+): Promise<CRSDTO> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/crs/${crsId}/content`, {
+      method: "PUT",
+      headers: createAuthHeaders(),
+      body: JSON.stringify({
+        content,
+        expected_version: expectedVersion,
+        field_sources: fieldSources,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = parseApiError(errorData, response.status);
+      throw new CRSError(errorMessage, response.status, errorData);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof CRSError) {
+      throw error;
+    }
+    throw new CRSError(
+      error instanceof Error ? error.message : "Network error occurred"
+    );
+  }
+}
+
 // ============================================================================
 // EXPORT & AUDIT OPERATIONS
 // ============================================================================

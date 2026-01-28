@@ -51,10 +51,19 @@ export default function MyCRSRequestsPage() {
   }, []);
 
   const handleStatusUpdate = useCallback(async () => {
-    await refreshRequests();
-    setSuccessMessage("CRS resubmitted successfully");
+    const updatedRequests = await refreshRequests();
+    
+    // Update the selected CRS with the latest data if dialog is still open
+    if (selectedCRS && updatedRequests) {
+      const updatedCRS = updatedRequests.find((crs: CRSDTO) => crs.id === selectedCRS.id);
+      if (updatedCRS) {
+        setSelectedCRS(updatedCRS);
+      }
+    }
+    
+    setSuccessMessage("CRS updated successfully");
     setTimeout(() => setSuccessMessage(null), 3000);
-  }, [refreshRequests]);
+  }, [refreshRequests, selectedCRS]);
 
   const getProjectName = useCallback(
     (projectId: number): string => {

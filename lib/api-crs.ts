@@ -143,6 +143,25 @@ export async function updateCRSStatus(
 }
 
 /**
+ * Update CRS content directly (in-place editor)
+ */
+export async function updateCRSContent(
+  crsId: number,
+  content: string,
+  expectedVersion?: number,
+  fieldSources?: Record<string, string>
+): Promise<CRSDTO> {
+  return apiCall<CRSDTO>(`/api/crs/${crsId}/content`, {
+    method: "PUT",
+    body: JSON.stringify({
+      content,
+      expected_version: expectedVersion,
+      field_sources: fieldSources
+    }),
+  });
+}
+
+/**
  * Export CRS document as PDF or Markdown
  */
 export async function exportCRS(
