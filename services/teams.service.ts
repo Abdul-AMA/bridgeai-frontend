@@ -10,6 +10,7 @@ import {
   CreateTeamResponseDTO,
   InviteMemberRequestDTO,
   InviteMemberResponseDTO,
+  TeamDashboardStatsDTO,
 } from "@/dto/teams.dto";
 import { getAuthToken } from "./token.service";
 
@@ -261,4 +262,43 @@ export async function activateTeam(teamId: number): Promise<TeamDTO> {
  */
 export async function deactivateTeam(teamId: number): Promise<TeamDTO> {
   return updateTeamStatus(teamId, "inactive");
+}
+
+/**
+ * Fetch team dashboard statistics
+ */
+export async function fetchTeamDashboardStats(
+  teamId: number
+): Promise<TeamDashboardStatsDTO> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/teams/${teamId}/dashboard/stats`,
+      {
+        method: "GET",
+        headers: createAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new TeamsError("Unauthorized. Please log in again.", 401);
+      }
+      if (response.status === 404) {
+        throw new TeamsError("Team not found", 404);
+      }
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = parseApiError(errorData, response.status);
+      throw new TeamsError(errorMessage, response.status, errorData);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof TeamsError) {
+      throw error;
+    }
+    throw new TeamsError(
+      error instanceof Error ? error.message : "Network error occurred"
+    );
+  }
 }
