@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -16,7 +16,10 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { CardGrid } from "@/components/shared/CardGrid";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
+import { Pagination } from "@/components/shared/Pagination";
 import { useProjects, useModal } from "@/hooks";
+
+const ITEMS_PER_PAGE = 9;
 
 
 interface CardProject {
@@ -49,6 +52,7 @@ export default function ProjectsList() {
   const params = useParams();
   const teamId = parseInt(params.id as string, 10);
   const { isOpen, openModal, closeModal } = useModal();
+  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     filteredProjects,
@@ -70,6 +74,12 @@ export default function ProjectsList() {
     }));
   }, [filteredProjects]);
 
+  // Calculate pagination
+  const totalPages = Math.ceil(cardProjects.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentProjects = useMemo(() => cardProjects.slice(startIndex, endIndex), [cardProjects, startIndex, endIndex]);
+
   const handleProjectCreated = useCallback(() => {
     closeModal();
     refreshProjects();
@@ -78,6 +88,7 @@ export default function ProjectsList() {
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchTerm(value);
+      setCurrentPage(1);
     },
     [setSearchTerm]
   );
@@ -119,7 +130,7 @@ export default function ProjectsList() {
         )}
 
         {/* Empty State */}
-        {!isLoading && !error && cardProjects.length === 0 && (
+        {!isLoading && !error && currentProjects.length === 0 && (
           <EmptyState
             message={
               searchTerm
@@ -137,8 +148,15 @@ export default function ProjectsList() {
         )}
 
         {/* Projects Grid */}
-        {!isLoading && !error && cardProjects.length > 0 && (
-          <CardGrid items={cardProjects} showAvatars={false} />
+        {!isLoading && !error && currentProjects.length > 0 && (
+          <>
+            <CardGrid items={currentProjects} showAvatars={false} />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </>
         )}
 
         {/* Create Project Modal */}

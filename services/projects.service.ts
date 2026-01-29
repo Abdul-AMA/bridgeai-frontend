@@ -10,6 +10,7 @@ import {
   CreateProjectResponseDTO,
   ApproveProjectRequestDTO,
   RejectProjectRequestDTO,
+  ProjectDashboardStatsDTO,
 } from "@/dto/projects.dto";
 import { getAuthToken } from "./token.service";
 
@@ -257,6 +258,45 @@ export async function updateProject(
     }
 
     return await response.json();
+  } catch (error) {
+    if (error instanceof ProjectsError) {
+      throw error;
+    }
+    throw new ProjectsError(
+      error instanceof Error ? error.message : "Network error occurred"
+    );
+  }
+}
+
+/**
+ * Fetch project dashboard statistics
+ */
+export async function fetchProjectDashboardStats(
+  projectId: number
+): Promise<ProjectDashboardStatsDTO> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/projects/${projectId}/dashboard/stats`,
+      {
+        method: "GET",
+        headers: createAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new ProjectsError("Unauthorized. Please log in again.", 401);
+      }
+      if (response.status === 404) {
+        throw new ProjectsError("Project not found", 404);
+      }
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = parseApiError(errorData, response.status);
+      throw new ProjectsError(errorMessage, response.status, errorData);
+    }
+
+    const data = await response.json();
+    return data;
   } catch (error) {
     if (error instanceof ProjectsError) {
       throw error;

@@ -1,10 +1,10 @@
 const avatarColors = [
-  "bg-[#FF7F50]",
-  "bg-[#6A5ACD]",
-  "bg-[#20B2AA]",
-  "bg-[#FF69B4]",
-  "bg-[#FFA500]",
-  "bg-[#00CED1]",
+  "bg-gradient-to-br from-blue-500 to-blue-600",
+  "bg-gradient-to-br from-purple-500 to-purple-600",
+  "bg-gradient-to-br from-green-500 to-green-600",
+  "bg-gradient-to-br from-pink-500 to-pink-600",
+  "bg-gradient-to-br from-orange-500 to-orange-600",
+  "bg-gradient-to-br from-cyan-500 to-cyan-600",
 ];
 
 export function AvatarList({ names = [] }: { names?: string[] }) {
@@ -20,18 +20,18 @@ export function AvatarList({ names = [] }: { names?: string[] }) {
   }
 
   return (
-    <div className="flex -space-x-2">
+    <div className="flex -space-x-3">
       {names.slice(0, 3).map((name, idx) => (
         <div
           key={idx}
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-white ${avatarColors[idx % avatarColors.length]}`}
+          className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold border-2 border-white shadow-md ${avatarColors[idx % avatarColors.length]} transition-transform hover:scale-110 hover:z-10`}
           title={name}
         >
           {getInitials(name)}
         </div>
       ))}
       {names.length > 3 && (
-        <div className="w-8 h-8 rounded-full bg-gray-500 text-white flex items-center justify-center text-xs font-medium border-2 border-white">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 text-white flex items-center justify-center text-xs font-semibold border-2 border-white shadow-md transition-transform hover:scale-110 hover:z-10">
           +{names.length - 3}
         </div>
       )}

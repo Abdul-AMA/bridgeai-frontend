@@ -23,9 +23,38 @@ interface Team {
   name: string;
 }
 
+interface User {
+  id: number;
+  email: string;
+  full_name: string;
+}
+
 interface HeaderProps {
   currentTeamId?: string;
   setCurrentTeamId?: (id: string) => void;
+}
+
+/**
+ * Get user initials from full name
+ * @param fullName - User's full name (e.g., "Yasser Hegazy")
+ * @returns Initials in format "YH" (first char of first name + first char of last name)
+ */
+function getUserInitials(fullName?: string): string {
+  if (!fullName) return "U";
+  
+  const nameParts = fullName.trim().split(/\s+/);
+  
+  if (nameParts.length === 0) return "U";
+  if (nameParts.length === 1) {
+    // Single name - use first two characters
+    return nameParts[0].substring(0, 2).toUpperCase();
+  }
+  
+  // Multiple names - use first char of first name + first char of last name
+  const firstInitial = nameParts[0].charAt(0).toUpperCase();
+  const lastInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+  
+  return firstInitial + lastInitial;
 }
 
 export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setParentTeamId }: HeaderProps) {
@@ -33,6 +62,7 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading state
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,6 +85,26 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
       window.removeEventListener('auth-state-changed', checkAuth);
     };
   }, []);
+
+  // Fetch current user when authenticated
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      if (!isAuthenticated) {
+        setCurrentUser(null);
+        return;
+      }
+
+      try {
+        const user = await apiCall<User>('/auth/me');
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+        setCurrentUser(null);
+      }
+    };
+
+    fetchCurrentUser();
+  }, [isAuthenticated]);
 
   // Fetch teams when authenticated
   useEffect(() => {
@@ -128,7 +178,7 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
   );
 
   const recentlyVisited = filteredTeams.slice(0, 2);
-  const moreTeams = filteredTeams.slice(2);
+  const moreTeams = filteredTeams.slice(2, 7); // Show only 5 more teams
 
   return (
     <header className="fixed top-0 left-0 w-full h-12 px-4 sm:px-3 bg-white border-b z-50 flex items-center justify-between">
@@ -253,7 +303,9 @@ export function Header({ currentTeamId: initialTeamId, setCurrentTeamId: setPare
                   style={{ backgroundColor: COLORS.primary, color: COLORS.textLight }}
                   onClick={() => router.push("/profile")}
                 >
-                  <span className="font-semibold text-sm">KJ</span>
+                  <span className="font-semibold text-sm">
+                    {getUserInitials(currentUser?.full_name)}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">

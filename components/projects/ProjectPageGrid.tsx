@@ -17,7 +17,6 @@ import { useSearchParams } from "next/navigation";
 import { DashboardTab } from "./DashboardTab";
 import { ChatsTab } from "./ChatsTab";
 import { SettingsTab } from "./SettingsTab";
-import { useProjectChats } from "@/hooks";
 
 interface ProjectPageGridProps {
   projectId: number;
@@ -41,9 +40,6 @@ export function ProjectPageGrid({
       "dashboard"
   );
   const [createChatTrigger, setCreateChatTrigger] = useState<number>(0);
-
-  // Load chats to get count for dashboard
-  const { chats } = useProjectChats(projectId);
 
   const handleStartChat = useCallback(() => {
     setActiveTab("chats");
@@ -97,8 +93,6 @@ export function ProjectPageGrid({
           userRole={userRole}
           onStartChat={handleStartChat}
           projectId={projectId}
-          chatCount={chats.length}
-          documentCount={3} // Mock value - would come from actual data
         />
       )}
 
