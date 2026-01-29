@@ -53,35 +53,76 @@ const GridCard = memo(function GridCard<T extends CardItem>({
 
   return (
     <Card
-      className="relative flex flex-col justify-between p-6 rounded-xl hover:shadow-lg transition-shadow cursor-pointer"
+      className="relative flex flex-col h-full p-6 rounded-2xl hover:shadow-xl transition-all duration-300 cursor-pointer group border border-gray-200 hover:border-blue-400 bg-white hover:scale-[1.02] overflow-hidden"
       onClick={handleClick}
     >
-      {/* Top: Name + Status */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{item.name}</h2>
-        <StatusBadge status={item.status} />
-      </div>
+      {/* Gradient overlay on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-purple-50/0 group-hover:from-blue-50/50 group-hover:to-purple-50/30 transition-all duration-300 pointer-events-none" />
+      
+      {/* Content wrapper */}
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Header: Name + Status */}
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <h2 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight flex-1">
+            {item.name}
+          </h2>
+          <StatusBadge status={item.status} />
+        </div>
 
-      <p className="text-sm text-muted-foreground">
-        Last update: {item.lastUpdate}
-      </p>
-
-      {/* Bottom: Members / Team + Dropdown */}
-      <div className="flex items-center justify-between mt-4">
-        {showAvatars ? (
-          <AvatarList names={type === "team" ? item.members! : item.team!} />
-        ) : (
-          <div />
-        )}
+        {/* Description (for teams) */}
         {type === "team" && (
-          <TeamActionsMenu
-            teamId={item.id}
-            teamName={item.name}
-            teamStatus={item.status}
-            teamDescription={item.description}
-            onActionComplete={onItemsChange}
-          />
+          <div className="mb-4 flex-1">
+            {item.description ? (
+              <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                {item.description}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">
+                No description provided
+              </p>
+            )}
+          </div>
         )}
+
+        {/* Last update */}
+        <div className="flex items-center gap-2 text-xs text-gray-500 mb-4 pb-4 border-b border-gray-100">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Updated {item.lastUpdate}</span>
+        </div>
+
+        {/* Footer: Members (teams only) + Actions */}
+        <div className="flex items-center justify-between mt-auto">
+          {type === "team" ? (
+            <>
+              <div className="flex items-center gap-3">
+                {showAvatars && item.members && item.members.length > 0 ? (
+                  <>
+                    <AvatarList names={item.members} />
+                    <span className="text-xs text-gray-500 font-medium">
+                      {item.members.length} {item.members.length === 1 ? 'member' : 'members'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400 italic">No members</span>
+                )}
+              </div>
+              
+              <div onClick={(e) => e.stopPropagation()}>
+                <TeamActionsMenu
+                  teamId={item.id}
+                  teamName={item.name}
+                  teamStatus={item.status}
+                  teamDescription={item.description}
+                  onActionComplete={onItemsChange}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="w-full" />
+          )}
+        </div>
       </div>
     </Card>
   );
@@ -110,7 +151,7 @@ export function CardGrid<T extends CardItem>({
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 pb-8">
       {items.map((item) => (
         <GridCard
           key={item.id}
