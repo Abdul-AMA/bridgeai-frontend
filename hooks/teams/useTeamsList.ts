@@ -45,7 +45,7 @@ function transformTeamToListItem(team: TeamDTO): TeamListItemDTO {
 /**
  * Custom hook for managing teams list
  */
-export function useTeamsList(): UseTeamsListReturn {
+export function useTeamsList(enabled = true): UseTeamsListReturn {
   const [teams, setTeams] = useState<TeamListItemDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +72,12 @@ export function useTeamsList(): UseTeamsListReturn {
   }, []);
 
   useEffect(() => {
-    loadTeams();
-  }, [loadTeams]);
+    if (enabled) {
+      loadTeams();
+    } else {
+      setIsLoading(false);
+    }
+  }, [enabled, loadTeams]);
 
   const filteredTeams = useMemo(() => {
     let filtered = teams;
