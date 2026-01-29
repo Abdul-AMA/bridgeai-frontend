@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SearchFilterBar } from "@/components/shared/SearchFilterBar";
@@ -16,11 +16,15 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { CardGrid } from "@/components/shared/CardGrid";
 import { CreateTeamModal } from "@/components/teams/CreateTeamModal";
 import { TeamsFilters } from "@/components/teams/TeamsFilters";
+import { Pagination } from "@/components/shared/Pagination";
 import { useTeamsList, useModal } from "@/hooks";
+
+const ITEMS_PER_PAGE = 9;
 
 
 export default function TeamsList() {
   const { isOpen, openModal, closeModal } = useModal();
+  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     filteredTeams,
@@ -33,6 +37,28 @@ export default function TeamsList() {
     resetFilters,
     refetchTeams,
   } = useTeamsList();
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTeams.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentTeams = useMemo(() => filteredTeams.slice(startIndex, endIndex), [filteredTeams, startIndex, endIndex]);
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  }, [setSearchQuery]);
+
+  const handleStatusChange = useCallback((statuses: string[]) => {
+    setSelectedStatuses(statuses);
+    setCurrentPage(1);
+  }, [setSelectedStatuses]);
+
+  const handleResetFilters = useCallback(() => {
+    resetFilters();
+    setCurrentPage(1);
+  }, [resetFilters]);
 
   const handleCloseModal = useCallback(
     (open: boolean) => {
@@ -58,13 +84,13 @@ export default function TeamsList() {
       {/* Search and Filters */}
       <SearchFilterBar
         searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Search teams by name"
         filters={
           <TeamsFilters
             selectedStatuses={selectedStatuses}
-            onStatusChange={setSelectedStatuses}
-            onReset={resetFilters}
+            onStatusChange={handleStatusChange}
+            onReset={handleResetFilters}
           />
         }
         actions={
@@ -88,8 +114,15 @@ export default function TeamsList() {
       )}
 
       {/* Teams Grid */}
-      {!isLoading && !error && filteredTeams.length > 0 && (
-        <CardGrid items={filteredTeams} type="team" onItemsChange={refetchTeams} />
+      {!isLoading && !error && currentTeams.length > 0 && (
+        <>
+          <CardGrid items={currentTeams} type="team" onItemsChange={refetchTeams} />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
       )}
 
       {/* Create Team Modal */}
