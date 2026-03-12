@@ -12,8 +12,9 @@ import { useCurrentUser } from "@/hooks/auth/useCurrentUser";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { PasswordChangeForm } from "@/components/profile/PasswordChangeForm";
+import { AIConfigForm } from "@/components/profile/AIConfigForm";
 import { getCookie } from "@/lib/utils";
-import { User, Lock, ArrowLeft } from "lucide-react";
+import { User, Lock, Bot, ArrowLeft } from "lucide-react";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -103,6 +104,20 @@ export default function ProfilePage() {
                                 <PasswordChangeForm />
                             </div>
                         )}
+
+                        {/* AI Configuration */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+                                <Bot className="w-5 h-5 text-gray-700" />
+                                <h2 className="text-xl font-semibold text-gray-900">
+                                    AI Configuration
+                                </h2>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Configure your own AI provider and model. If not set, the default server configuration will be used.
+                            </p>
+                            <AIConfigForm />
+                        </div>
 
                         {/* Google User Notice */}
                         {isGoogleUser && (
