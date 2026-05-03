@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { LogOut, BarChart2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -36,6 +37,7 @@ function getUserInitials(fullName?: string): string {
 }
 
 export function UserMenu({ user, onLogout, onProfileClick }: UserMenuProps) {
+  const router = useRouter();
   const avatarUrl = getAvatarUrl(user?.avatar_url);
   // Add cache buster using a simple hash of the avatar URL to force reload
   // For Google avatars, use as-is since they have their own versioning
@@ -71,6 +73,13 @@ export function UserMenu({ user, onLogout, onProfileClick }: UserMenuProps) {
           onClick={onProfileClick}
         >
           Profile Settings
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="text-sm cursor-pointer flex items-center gap-2"
+          onClick={() => router.push("/ai-usage")}
+        >
+          <BarChart2 className="w-4 h-4" />
+          AI Usage
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
