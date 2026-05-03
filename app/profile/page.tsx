@@ -32,7 +32,7 @@ export default function ProfilePage() {
     // Show loading state
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gray-50 pt-20 pb-14 px-6 sm:px-8 flex justify-center items-center">
+            <div className="flex justify-center items-center h-64">
                 <div className="flex items-center gap-3">
                     <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-gray-600">Loading profile...</span>
@@ -51,7 +51,7 @@ export default function ProfilePage() {
     const isGoogleUser = user.avatar_url?.startsWith("http") || false;
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-20 pb-14 px-6 sm:px-8">
+        <div className="pt-12 pb-14">
             <div className="max-w-4xl mx-auto">
                 {/* Back Button */}
                 <button
