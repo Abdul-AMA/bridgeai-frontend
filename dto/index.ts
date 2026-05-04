@@ -67,6 +67,8 @@ export type {
   InvitationRole,
 } from "./invitations.dto";
 
+export type { DocumentDTO, DocumentListDTO, DocumentStatus } from "./documents.dto";
+
 export type {
   ChatSessionDTO,
   ChatMessageDTO,

@@ -16,6 +16,8 @@ import { CRSExportButton } from "@/components/shared/CRSExportButton";
 import { CRSAuditButton } from "@/components/shared/CRSAuditButton";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { KnowledgeBasePanel } from "@/components/projects/KnowledgeBasePanel";
+import { ProjectContextCard } from "@/components/projects/ProjectContextCard";
 import { CRSStatus } from "@/dto/crs.dto";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -175,6 +177,12 @@ export function DashboardTab({
               </div>
             </div>
           )}
+
+          {/* Knowledge Base Section */}
+          <KnowledgeBasePanel projectId={projectId} />
+
+          {/* Project Context Summary */}
+          <ProjectContextCard projectId={projectId} />
         </div>
       </div>
     </div>
