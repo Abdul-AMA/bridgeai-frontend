@@ -14,11 +14,14 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { Layout, MessageSquare, Settings } from "lucide-react";
+import { Layout, MessageSquare, Settings, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DashboardTab } from "./DashboardTab";
 import { ChatsTab } from "./ChatsTab";
 import { SettingsTab } from "./SettingsTab";
+import { TraceabilityTab } from "./TraceabilityTab";
+
+type TabId = "dashboard" | "chats" | "settings" | "traceability";
 
 interface ProjectPageGridProps {
   projectId: number;
@@ -26,7 +29,7 @@ interface ProjectPageGridProps {
   projectName: string;
   projectDescription?: string;
   userRole: "BA" | "Client";
-  initialTab?: "dashboard" | "chats" | "settings";
+  initialTab?: TabId;
 }
 
 export function ProjectPageGrid({
@@ -36,9 +39,9 @@ export function ProjectPageGrid({
   initialTab,
 }: ProjectPageGridProps) {
   const searchParams = useSearchParams?.();
-  const [activeTab, setActiveTab] = useState<"dashboard" | "chats" | "settings">(
+  const [activeTab, setActiveTab] = useState<TabId>(
     initialTab ||
-    (searchParams?.get("tab") as "dashboard" | "chats" | "settings") ||
+    (searchParams?.get("tab") as TabId) ||
     "dashboard"
   );
   const [createChatTrigger, setCreateChatTrigger] = useState<number>(0);
@@ -48,7 +51,7 @@ export function ProjectPageGrid({
     setCreateChatTrigger(Date.now());
   }, []);
 
-  const handleTabChange = useCallback((tab: "dashboard" | "chats" | "settings") => {
+  const handleTabChange = useCallback((tab: TabId) => {
     setActiveTab(tab);
     setCreateChatTrigger(0);
   }, []);
@@ -58,6 +61,7 @@ export function ProjectPageGrid({
     const tabs = [
       { id: "dashboard", label: "Dashboard", icon: Layout },
       { id: "chats", label: "Chats", icon: MessageSquare },
+      { id: "traceability", label: "Traceability", icon: GitBranch },
       { id: "settings", label: "Settings", icon: Settings },
     ] as const;
 
@@ -83,7 +87,7 @@ export function ProjectPageGrid({
                   ? "border-b-2 border-primary text-primary"
                   : "text-gray-500 hover:text-black"
               )}
-              onClick={() => handleTabChange(tab.id as any)}
+              onClick={() => handleTabChange(tab.id as TabId)}
             >
               <Icon className={cn("w-4 h-4", isActive ? "text-primary" : "text-gray-500")} />
               <span>{tab.label}</span>
@@ -103,6 +107,10 @@ export function ProjectPageGrid({
 
       {activeTab === "chats" && userRole === "Client" && (
         <ChatsTab projectId={projectId} teamId={teamId} createChatTrigger={createChatTrigger} />
+      )}
+
+      {activeTab === "traceability" && (
+        <TraceabilityTab projectId={projectId} userRole={userRole} />
       )}
 
       {activeTab === "settings" && <SettingsTab projectId={projectId} />}
