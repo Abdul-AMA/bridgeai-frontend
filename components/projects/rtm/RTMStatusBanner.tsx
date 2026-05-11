@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, Download, AlertTriangle, CheckCircle2, GitBranch, ChevronDown } from "lucide-react";
+import { RefreshCw, Download, AlertTriangle, CheckCircle2, GitBranch, ChevronDown, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +20,8 @@ interface RTMStatusBannerProps {
   isTriggering: boolean;
   onRefresh: () => void;
   userRole: "BA" | "Client";
+  onGenerateAll?: () => void;
+  isGeneratingAll?: boolean;
 }
 
 function StatPill({
@@ -61,6 +63,8 @@ export function RTMStatusBanner({
   isTriggering,
   onRefresh,
   userRole,
+  onGenerateAll,
+  isGeneratingAll,
 }: RTMStatusBannerProps) {
   const isBA = userRole === "BA";
   const [exporting, setExporting] = useState(false);
@@ -154,6 +158,19 @@ export function RTMStatusBanner({
               <AlertTriangle className="w-3 h-3" />
               Gaps detected
             </span>
+          )}
+
+          {isBA && (status?.untested_count ?? 0) > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGenerateAll}
+              disabled={!!isRefreshing || !!isGeneratingAll}
+              className="gap-1.5"
+            >
+              <Wand2 className={cn("w-3.5 h-3.5", isGeneratingAll && "animate-pulse")} />
+              {isGeneratingAll ? "Generating…" : "Generate All Tests"}
+            </Button>
           )}
 
           {isBA && (

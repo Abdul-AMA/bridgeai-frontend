@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { GitBranch } from "lucide-react";
 import { useRTM } from "@/hooks/projects/useRTM";
 import { useRTMStatus } from "@/hooks/projects/useRTMStatus";
+import { rtmService } from "@/services/rtm.service";
 import { RTMStatusBanner } from "./rtm/RTMStatusBanner";
 import { RTMTable } from "./rtm/RTMTable";
 import { RequirementDetailPanel } from "./rtm/RequirementDetailPanel";
@@ -16,13 +17,34 @@ interface TraceabilityTabProps {
 }
 
 export function TraceabilityTab({ projectId, userRole }: TraceabilityTabProps) {
-  const { status, triggerRefresh, isTriggering } = useRTMStatus(projectId);
+  const { status, triggerRefresh, isTriggering, reloadStatus } = useRTMStatus(projectId);
   const { requirements, isLoading, filters, setFilters, reload } = useRTM(projectId);
   const [selectedReqId, setSelectedReqId] = useState<string | null>(null);
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
 
   const handleRequirementUpdated = () => {
     reload();
   };
+
+  const handleGenerateAll = useCallback(async () => {
+    setIsGeneratingAll(true);
+    try {
+      // Loop until no more untested requirements (backend caps at 10 per call)
+      for (let i = 0; i < 20; i++) {
+        const resp = await rtmService.generateTestCases(projectId, {
+          requirement_ids: [],
+          generate_all_untested: true,
+        });
+        if (resp.generated.length === 0) break;
+      }
+    } catch {
+      // non-fatal
+    } finally {
+      setIsGeneratingAll(false);
+      reload();
+      reloadStatus();
+    }
+  }, [projectId, reload, reloadStatus]);
 
   const hasNoRequirements =
     !isLoading &&
@@ -40,6 +62,8 @@ export function TraceabilityTab({ projectId, userRole }: TraceabilityTabProps) {
         isTriggering={isTriggering}
         onRefresh={triggerRefresh}
         userRole={userRole}
+        onGenerateAll={handleGenerateAll}
+        isGeneratingAll={isGeneratingAll}
       />
 
       {hasNoRequirements && !isLoading ? (
