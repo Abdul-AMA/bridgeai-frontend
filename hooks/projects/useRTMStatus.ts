@@ -54,5 +54,5 @@ export function useRTMStatus(projectId: number) {
     return stopPolling;
   }, [load, stopPolling]);
 
-  return { status, triggerRefresh, isTriggering };
+  return { status, triggerRefresh, isTriggering, reloadStatus: load };
 }
