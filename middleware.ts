@@ -19,8 +19,9 @@ export function middleware(request: NextRequest) {
   // ---- Admin route guard ----
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
   const isAdminLoginPage = request.nextUrl.pathname === '/admin/login'
+  const isAdmin403Page = request.nextUrl.pathname === '/admin/403'
 
-  if (isAdminRoute && !isAdminLoginPage) {
+  if (isAdminRoute && !isAdminLoginPage && !isAdmin403Page) {
     if (!token) {
       return NextResponse.redirect(new URL("/admin/login", request.url))
     }

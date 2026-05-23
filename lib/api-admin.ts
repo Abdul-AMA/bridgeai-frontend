@@ -1,4 +1,43 @@
-import { apiCall } from "./api";
+import { clearAccessToken, getAccessToken } from "./api";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+async function adminApiCall<T = unknown>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const token = getAccessToken();
+  if (!token) {
+    if (typeof window !== "undefined") window.location.href = "/admin/login";
+    throw new Error("No authentication token found.");
+  }
+
+  const url = `${API_BASE_URL}${endpoint}`;
+  const headers = {
+    "Content-Type": "application/json",
+    ...options?.headers,
+    Authorization: `Bearer ${token}`,
+  };
+
+  const response = await fetch(url, { ...options, headers });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearAccessToken();
+      document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      if (typeof window !== "undefined") window.location.href = "/admin/login";
+      throw new Error("Unauthorized.");
+    }
+    let msg = response.statusText || `HTTP ${response.status}`;
+    try {
+      const err = await response.json();
+      if (err.detail) msg = typeof err.detail === "string" ? err.detail : JSON.stringify(err.detail);
+    } catch {}
+    throw new Error(msg);
+  }
+
+  return response.json() as Promise<T>;
+}
 import type {
   AdminAuditLogDTO,
   AdminChangeRoleRequestDTO,
@@ -82,33 +121,33 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
 }
 
 export function getAdminOverview(): Promise<AdminOverviewStatsDTO> {
-  return apiCall<AdminOverviewStatsDTO>("/api/admin/overview");
+  return adminApiCall<AdminOverviewStatsDTO>("/api/admin/overview");
 }
 
 export function getAdminUsers(
   params: AdminUsersParams = {}
 ): Promise<PaginatedResponseDTO<AdminUserListItemDTO>> {
-  return apiCall<PaginatedResponseDTO<AdminUserListItemDTO>>(
+  return adminApiCall<PaginatedResponseDTO<AdminUserListItemDTO>>(
     `/api/admin/users${buildQuery(params as Record<string, string | number | boolean | undefined>)}`
   );
 }
 
 export function getAdminUser(id: number): Promise<AdminUserDetailDTO> {
-  return apiCall<AdminUserDetailDTO>(`/api/admin/users/${id}`);
+  return adminApiCall<AdminUserDetailDTO>(`/api/admin/users/${id}`);
 }
 
 export function suspendUser(
   id: number,
   req: AdminSuspendRequestDTO
 ): Promise<AdminUserStatusDTO> {
-  return apiCall<AdminUserStatusDTO>(`/api/admin/users/${id}/status`, {
+  return adminApiCall<AdminUserStatusDTO>(`/api/admin/users/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify(req),
   });
 }
 
 export function reactivateUser(id: number): Promise<AdminUserStatusDTO> {
-  return apiCall<AdminUserStatusDTO>(`/api/admin/users/${id}/status`, {
+  return adminApiCall<AdminUserStatusDTO>(`/api/admin/users/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ action: "reactivate" }),
   });
@@ -118,7 +157,7 @@ export function changeUserRole(
   id: number,
   req: AdminChangeRoleRequestDTO
 ): Promise<AdminUserRoleDTO> {
-  return apiCall<AdminUserRoleDTO>(`/api/admin/users/${id}/role`, {
+  return adminApiCall<AdminUserRoleDTO>(`/api/admin/users/${id}/role`, {
     method: "PATCH",
     body: JSON.stringify(req),
   });
@@ -127,27 +166,27 @@ export function changeUserRole(
 export function getAdminTeams(
   params: AdminTeamsParams = {}
 ): Promise<PaginatedResponseDTO<AdminTeamListItemDTO>> {
-  return apiCall<PaginatedResponseDTO<AdminTeamListItemDTO>>(
+  return adminApiCall<PaginatedResponseDTO<AdminTeamListItemDTO>>(
     `/api/admin/teams${buildQuery(params as Record<string, string | number | boolean | undefined>)}`
   );
 }
 
 export function getAdminTeam(id: number): Promise<AdminTeamDetailDTO> {
-  return apiCall<AdminTeamDetailDTO>(`/api/admin/teams/${id}`);
+  return adminApiCall<AdminTeamDetailDTO>(`/api/admin/teams/${id}`);
 }
 
 export function suspendTeam(
   id: number,
   req: AdminSuspendRequestDTO
 ): Promise<AdminTeamStatusDTO> {
-  return apiCall<AdminTeamStatusDTO>(`/api/admin/teams/${id}/status`, {
+  return adminApiCall<AdminTeamStatusDTO>(`/api/admin/teams/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify(req),
   });
 }
 
 export function reactivateTeam(id: number): Promise<AdminTeamStatusDTO> {
-  return apiCall<AdminTeamStatusDTO>(`/api/admin/teams/${id}/status`, {
+  return adminApiCall<AdminTeamStatusDTO>(`/api/admin/teams/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ action: "reactivate" }),
   });
@@ -156,13 +195,13 @@ export function reactivateTeam(id: number): Promise<AdminTeamStatusDTO> {
 export function getAdminAnalytics(
   params: AdminAnalyticsParams
 ): Promise<AdminTimeSeriesDTO> {
-  return apiCall<AdminTimeSeriesDTO>(
+  return adminApiCall<AdminTimeSeriesDTO>(
     `/api/admin/analytics${buildQuery(params as unknown as Record<string, string | number | boolean | undefined>)}`
   );
 }
 
 export function getAdminLogs(params: AdminLogsParams): Promise<AdminLogPageDTO> {
-  return apiCall<AdminLogPageDTO>(
+  return adminApiCall<AdminLogPageDTO>(
     `/api/admin/logs${buildQuery(params as unknown as Record<string, string | number | boolean | undefined>)}`
   );
 }
@@ -170,7 +209,7 @@ export function getAdminLogs(params: AdminLogsParams): Promise<AdminLogPageDTO> 
 export function getAdminAudit(
   params: AdminAuditParams = {}
 ): Promise<PaginatedResponseDTO<AdminAuditLogDTO>> {
-  return apiCall<PaginatedResponseDTO<AdminAuditLogDTO>>(
+  return adminApiCall<PaginatedResponseDTO<AdminAuditLogDTO>>(
     `/api/admin/audit${buildQuery(params as Record<string, string | number | boolean | undefined>)}`
   );
 }
@@ -178,7 +217,7 @@ export function getAdminAudit(
 export function getAdminErrors(
   params: AdminErrorsParams = {}
 ): Promise<PaginatedResponseDTO<AdminErrorLogDTO>> {
-  return apiCall<PaginatedResponseDTO<AdminErrorLogDTO>>(
+  return adminApiCall<PaginatedResponseDTO<AdminErrorLogDTO>>(
     `/api/admin/errors${buildQuery(params as Record<string, string | number | boolean | undefined>)}`
   );
 }

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { COLORS } from "@/constants";
 import { geistSans } from "@/fonts";
+import { clearAccessToken } from "@/lib/api";
 
 export function AdminHeader() {
   function handleSignOut() {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    clearAccessToken();
     document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     window.location.href = "/admin/login";
   }
