@@ -16,11 +16,30 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value
   const role = request.cookies.get("role")?.value
 
+  // ---- Admin route guard ----
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
+  const isAdminLoginPage = request.nextUrl.pathname === '/admin/login'
+  const isAdmin403Page = request.nextUrl.pathname === '/admin/403'
+
+  if (isAdminRoute && !isAdminLoginPage && !isAdmin403Page) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/admin/login", request.url))
+    }
+    if (role !== "super_admin") {
+      return NextResponse.redirect(new URL("/admin/403", request.url))
+    }
+  }
+
+  // Redirect authenticated super_admin away from admin login
+  if (isAdminLoginPage && token && role === "super_admin") {
+    return NextResponse.redirect(new URL("/admin/overview", request.url))
+  }
+
   // Check if the user is trying to access a protected route
   const isProtectedRoute = request.nextUrl.pathname.startsWith('/teams') ||
     request.nextUrl.pathname.startsWith('/projects') ||
     request.nextUrl.pathname.startsWith('/chats')
-  
+
   // Check if accessing role selection page
   const isRoleSelectionPage = request.nextUrl.pathname.startsWith('/auth/select-role')
 
@@ -66,5 +85,7 @@ export const config = {
     // Auth routes
     '/auth/login',
     '/auth/select-role',
+    // Admin routes
+    '/admin/:path*',
   ],
 }
