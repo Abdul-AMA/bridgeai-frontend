@@ -64,4 +64,4 @@ export interface ApiErrorDTO {
   detail: string | ValidationErrorDTO[];
 }
 
-export type UserRole = "client" | "ba";
+export type UserRole = "client" | "ba" | "super_admin";
