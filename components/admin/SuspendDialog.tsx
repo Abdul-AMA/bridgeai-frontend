@@ -21,20 +21,36 @@ export function SuspendDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="text-base font-bold text-gray-900 mb-1">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="suspend-dialog-title"
+        aria-describedby="suspend-dialog-description"
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+      >
+        <h2
+          id="suspend-dialog-title"
+          className="text-base font-bold text-gray-900 mb-1"
+        >
           Suspend {entityType}
         </h2>
-        <p className="text-sm text-gray-500 mb-4">
+        <p
+          id="suspend-dialog-description"
+          className="text-sm text-gray-500 mb-4"
+        >
           You are about to suspend{" "}
           <span className="font-medium text-gray-800">{entityName}</span>. This
           action is logged and reversible.
         </p>
 
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label
+          htmlFor="suspend-dialog-reason"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Reason <span className="text-red-500">*</span>
         </label>
         <textarea
+          id="suspend-dialog-reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={3}
